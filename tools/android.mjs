@@ -17,6 +17,10 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const APP = join(ROOT, '..', 'rutin-android');   // proyek Capacitor ditaruh di sebelah repo
 const perintah = process.argv[2];
 
+// Password keystore diambil dari lingkungan, bukan ditulis di kode.
+// Repo ini publik; password penandatangan nggak boleh ada di dalamnya.
+const KS_PASS = process.env.RUTIN_KEYSTORE_PASS;
+
 const sh = (cmd, cwd) => {
   console.log(`  $ ${cmd}`);
   execSync(cmd, { cwd: cwd || APP, stdio: 'inherit' });
@@ -36,6 +40,11 @@ function salinWeb() {
   console.log('  web disalin ke www/index.html');
 }
 
+if (!KS_PASS && perintah) {
+  console.error('Set RUTIN_KEYSTORE_PASS dulu:  export RUTIN_KEYSTORE_PASS="password-lo"');
+  process.exit(1);
+}
+
 if (perintah === 'siapkan') {
   mkdirSync(APP, { recursive: true });
   if (!existsSync(join(APP, 'package.json'))) sh('npm init -y');
@@ -48,7 +57,7 @@ if (perintah === 'siapkan') {
   const ks = join(APP, 'android', 'rutin-release.keystore');
   if (!existsSync(ks)) {
     sh(`keytool -genkeypair -v -keystore rutin-release.keystore -alias rutin -keyalg RSA -keysize 2048 ` +
-       `-validity 10950 -storepass rutin2026 -keypass rutin2026 ` +
+       `-validity 10950 -storepass "${KS_PASS}" -keypass "${KS_PASS}" ` +
        `-dname "CN=Rutin, OU=Personal, O=Rutin, L=Jakarta, S=DKI Jakarta, C=ID"`, join(APP, 'android'));
     console.log('\n  Keystore dibikin di rutin-android/android/rutin-release.keystore');
     console.log('  SIMPAN FILE INI. Tanpa dia, versi berikutnya nggak bisa nimpa yang udah terpasang.\n');
@@ -62,9 +71,9 @@ if (perintah === 'siapkan') {
 `    signingConfigs {
         release {
             storeFile file('../rutin-release.keystore')
-            storePassword 'rutin2026'
+            storePassword System.getenv("RUTIN_KEYSTORE_PASS")
             keyAlias 'rutin'
-            keyPassword 'rutin2026'
+            keyPassword System.getenv("RUTIN_KEYSTORE_PASS")
         }
     }
     buildTypes {

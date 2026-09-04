@@ -1,4 +1,9 @@
-# Program Latihan — Vertical Jump & Basket
+# Training Program — Vertical Jump & Basketball
+
+> **Note:** this document is generated from the app's own `PROGRAM` constant by
+> `tools/`, so it can never drift from what the app actually shows. The exercise
+> names are standard English strength-training terms; the coaching cues are in
+> Indonesian because they are app content shown to the user.
 
 Disusun buat pemain basket level lanjut dengan akses gym lengkap. Lima sesi gym, dua sampai tiga sesi basket, dua hari libur.
 

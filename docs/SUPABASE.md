@@ -1,12 +1,12 @@
-# Sinkron Supabase
+# Cloud sync with Supabase
 
-Opsional. Tanpa ini aplikasi jalan penuh, data cuma nempel di satu perangkat.
+Optional. Without it the app works fully; data just stays on one device.
 
-## Pasang
+## Setup
 
-1. **supabase.com** → New project, region Southeast Asia (Singapore).
+1. **supabase.com** → New project. Pick a region close to you.
 
-2. **SQL Editor** → jalankan:
+2. **SQL Editor** → run:
 
 ```sql
 create table if not exists public.rutin_state (
@@ -17,41 +17,41 @@ create table if not exists public.rutin_state (
 
 alter table public.rutin_state enable row level security;
 
-drop policy if exists "baca punya sendiri"  on public.rutin_state;
-drop policy if exists "tulis punya sendiri" on public.rutin_state;
-drop policy if exists "ubah punya sendiri"  on public.rutin_state;
+drop policy if exists "read own row"   on public.rutin_state;
+drop policy if exists "insert own row" on public.rutin_state;
+drop policy if exists "update own row" on public.rutin_state;
 
-create policy "baca punya sendiri"  on public.rutin_state
+create policy "read own row"   on public.rutin_state
   for select using (auth.uid() = user_id);
-create policy "tulis punya sendiri" on public.rutin_state
+create policy "insert own row" on public.rutin_state
   for insert with check (auth.uid() = user_id);
-create policy "ubah punya sendiri"  on public.rutin_state
+create policy "update own row" on public.rutin_state
   for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
 ```
 
-3. **Authentication → Sign In / Providers → Email** → matikan *Confirm email*.
+3. **Authentication → Sign In / Providers → Email** → turn off *Confirm email*.
 
-4. **Settings → API Keys** → salin kunci publiknya:
-   - proyek baru: **Publishable key**, diawali `sb_publishable_`
-   - proyek lama: **anon public**, diawali `eyJ`
+4. **Settings → API Keys** → copy the public key:
+   - newer projects: **Publishable key**, starting `sb_publishable_`
+   - older projects: **anon public**, starting `eyJ`
 
-   Jangan ambil yang `secret` atau `service_role` — itu menembus RLS.
+   Do not use the `secret` or `service_role` key — those bypass row-level security.
 
-5. Di aplikasi: **gerigi → Sinkronisasi → Sambungkan**, tempel URL dan kunci, daftar dengan email dan password.
+5. In the app: **gear → Sinkronisasi → Sambungkan**, paste the URL and key, sign up with email and password.
 
-## Cara kerjanya
+## How it works
 
-Satu baris per pengguna berisi seluruh objek `S` sebagai JSONB. Dorong ditunda 1,4 detik setelah perubahan, plus segera saat aplikasi ke latar. Saat menarik, yang `updatedAt`-nya lebih baru yang menang.
+One row per user holding the entire `S` object as JSONB. Pushes are debounced 1.4 seconds after a change, plus an immediate push when the app is backgrounded. On pull, whichever side has the newer `updatedAt` wins.
 
-Kunci publik aman dipajang karena RLS membatasi tiap orang ke barisnya sendiri.
+The public key is safe to ship because row-level security confines each account to its own row.
 
-**Batasannya:** terakhir-menulis-menang di tingkat seluruh dokumen. Dua perangkat yang sama-sama diubah saat offline akan membuat perubahan salah satu hilang. Lihat KELEMAHAN.md bagian 1.
+**The limitation:** last-write-wins at whole-document level. Two devices both edited while offline will lose one side's changes. See [LIMITATIONS.md](LIMITATIONS.md) §1.
 
-## Kalau bermasalah
+## Troubleshooting
 
-| Gejala | Sebab biasanya |
+| Symptom | Usual cause |
 |---|---|
-| "Nggak bisa nyambung" | URL ada spasi atau garis miring di ujung |
-| "Email atau password salah" | Confirm email masih nyala, akunnya belum aktif |
-| Sinkron jalan tapi data nggak muncul | tabel belum dibuat, atau policy belum jalan |
-| Ikon sinkron merah | cek Network di devtools; 401 = kunci salah, 42501 = policy |
+| "Nggak bisa nyambung" (can't connect) | the URL has a stray space or trailing slash |
+| "Email atau password salah" | Confirm email is still on, so the account isn't active |
+| Sync runs but no data appears | the table wasn't created, or the policies didn't apply |
+| Sync icon stays red | check Network in devtools; 401 = wrong key, 42501 = policy |
