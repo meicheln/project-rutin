@@ -148,9 +148,13 @@ with open(f"{RES}/values/ic_launcher_background.xml", "w") as f:
             '    <color name="ic_launcher_background">#0E0F11</color>\n</resources>\n')
 
 # ---------- ikon buat web/PWA ----------
+# Ini cuma kepakai sekali buat bikin data URI di 40-gerbang-boot.js, bukan buat APK.
+#   python3 tools/buat-ikon.py <folder-res> <folder-keluaran-pwa>
+LUAR = (sys.argv[2] if len(sys.argv) > 2
+        else os.environ.get("RUTIN_PWA_OUT") or "dist")
 for n in (192, 512):
     b = rounded(n)
     b.alpha_composite(r_glyph(n))
-    save(b, f"/home/claude/build/icon-{n}.png")
+    save(b, os.path.join(LUAR, f"icon-{n}.png"))
 
 print("ikon & splash selesai")
