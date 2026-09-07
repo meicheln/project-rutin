@@ -126,6 +126,14 @@ A new keystore means the next APK cannot replace the installed one. Migrate befo
 With cloud sync on, the data is in Supabase too, so signing in again also brings it back. This is a
 one-time cost: once the new keystore is in GitHub secrets, every later build matches it.
 
+### Node 24
+
+CI pins Node 24, and `package.json` requires it. `tests/07-gemini.spec.mjs` imports
+`supabase/functions/asisten/gemini.ts` directly — the Edge Function's translation layer is tested as
+the real file, with no build step and no duplicated copy. Node strips the types on import, which
+needs 24 (or 22.18+). On Node 20 the suite dies with `ERR_UNKNOWN_FILE_EXTENSION` after six specs
+have already passed, which reads as a test failure and isn't one.
+
 ### Icons
 
 `tools/buat-ikon.py` takes the res directory as its first argument and fetches Plus Jakarta Sans,
