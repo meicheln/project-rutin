@@ -212,9 +212,10 @@ select.inp{appearance:none;background-image:url("data:image/svg+xml;utf8,<svg xm
 .press:active{transform:scale(.985);opacity:.72}
 
 /* progress */
-.bar{height:7px;border-radius:var(--r-full);background:var(--track);overflow:hidden}
+.bar{height:7px;border-radius:var(--r-full);background:var(--track);overflow:hidden;position:relative}
 .bar>i{display:block;height:100%;border-radius:var(--r-full);background:var(--inv);
   transition:width .8s var(--ease)}
+.bar>b{position:absolute;top:0;bottom:0;width:2px;background:var(--text);opacity:.5}
 
 /* sheet */
 .scrim{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:90;opacity:0;pointer-events:none;
@@ -237,6 +238,10 @@ select.inp{appearance:none;background-image:url("data:image/svg+xml;utf8,<svg xm
   background:var(--inv);color:var(--inv-fg);padding:11px 18px;border-radius:var(--r-full);font-size:13.5px;font-weight:650;
   z-index:200;opacity:0;pointer-events:none;transition:all .32s var(--ease-spring);box-shadow:var(--shadow-lg);max-width:88vw;text-align:center}
 #toast.on{opacity:1;transform:translate(-50%,0)}
+#toast.aksi{pointer-events:auto;display:flex;align-items:center;gap:12px;padding:9px 9px 9px 18px;width:max-content}
+#toast.aksi>span{flex:1;min-width:0;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#toast button{background:var(--inv-fg);color:var(--inv);border:0;border-radius:var(--r-full);
+  padding:7px 14px;font:inherit;font-weight:750;font-size:12.5px;flex:none;cursor:pointer}
 
 /* rings & charts */
 .ringwrap{position:relative;display:grid;place-items:center}
@@ -316,6 +321,10 @@ svg.chart{display:block;width:100%;overflow:visible}
   background:var(--c-ok-soft);border-radius:12px;padding:9px 12px;line-height:1.45;
   animation:bubIn .3s var(--ease);align-self:flex-start;max-width:92%}
 .aiAct .tick{color:var(--c-ok);font-weight:800;flex:none}
+.aiAct.urung{background:var(--surface-2);align-items:center;gap:10px}
+.aiAct.urung .tick{color:var(--text-3)}
+.aiAct.urung button{background:var(--inv);color:var(--inv-fg);border:0;border-radius:var(--r-full);
+  padding:6px 13px;font:inherit;font-weight:700;flex:none;cursor:pointer}
 .aiBar{display:flex;gap:9px;align-items:flex-end;padding:10px 12px calc(var(--safe-b) + 12px);
   border-top:1px solid var(--border);background:var(--bg)}
 #aiText{flex:1;background:var(--surface-2);border:1px solid var(--border);border-radius:20px;

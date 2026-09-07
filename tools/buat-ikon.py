@@ -1,10 +1,43 @@
 #!/usr/bin/env python3
 """Bikin ikon peluncur, ikon notifikasi, dan splash buat Rutin."""
 from PIL import Image, ImageDraw, ImageFont
-import os, math
+import os, sys, math, glob, urllib.request
 
-RES = "/home/claude/app/android/app/src/main/res"
-FONT = "/tmp/PJS.ttf"
+# Folder res-nya dikasih tahu dari luar, bukan dipatok di kode — dulu ini kepatok
+# ke mesin tempat APK pertama dibikin, jadi nggak bisa jalan di mana-mana lagi.
+#   python3 tools/buat-ikon.py <folder-res>
+RES = (sys.argv[1] if len(sys.argv) > 1
+       else os.environ.get("RUTIN_RES")
+       or os.path.join("..", "rutin-android", "android", "app", "src", "main", "res"))
+
+PJS = ("https://github.com/google/fonts/raw/main/ofl/plusjakartasans/"
+       "PlusJakartaSans%5Bwght%5D.ttf")
+
+
+def cari_font():
+    """Plus Jakarta Sans kalau bisa; kalau nggak, font sistem apa pun.
+    Glifnya cuma huruf R — font cadangan bikin beda tipis, bukan gagal."""
+    lokal = os.environ.get("RUTIN_FONT") or "/tmp/PJS.ttf"
+    if os.path.exists(lokal):
+        return lokal
+    try:
+        urllib.request.urlretrieve(PJS, lokal)
+        return lokal
+    except Exception as e:
+        print("  font Plus Jakarta Sans nggak keunduh (%s), pakai font sistem" % e)
+    for pola in ("/usr/share/fonts/**/DejaVuSans-Bold.ttf",
+                 "/usr/share/fonts/**/LiberationSans-Bold.ttf",
+                 "/usr/share/fonts/**/*Bold.ttf",
+                 "C:/Windows/Fonts/arialbd.ttf"):
+        ada = glob.glob(pola, recursive=True)
+        if ada:
+            return ada[0]
+    raise SystemExit("nggak ada font sama sekali — pasang fonts-dejavu atau set RUTIN_FONT")
+
+
+FONT = cari_font()
+print("  res  :", RES)
+print("  font :", FONT)
 BG = (14, 15, 17, 255)        # --bg gelap
 FG = (237, 239, 242, 255)     # --text terang
 ACCENT = (62, 207, 149, 255)  # --c-ok

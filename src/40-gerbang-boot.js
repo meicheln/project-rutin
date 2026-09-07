@@ -21,7 +21,18 @@ create policy "baca punya sendiri"  on public.rutin_state
 create policy "tulis punya sendiri" on public.rutin_state
   for insert with check (auth.uid() = user_id);
 create policy "ubah punya sendiri"  on public.rutin_state
-  for update using (auth.uid() = user_id) with check (auth.uid() = user_id);`;
+  for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
+-- Kuota harian asisten. Sengaja TANPA policy sama sekali: cuma Edge Function
+-- (pakai service role) yang boleh nulis. Kalau pengguna bisa nulis sendiri,
+-- token yang bocor tinggal reset hitungannya ke nol.
+create table if not exists public.rutin_kuota (
+  user_id uuid  not null references auth.users(id) on delete cascade,
+  hari    date  not null,
+  jumlah  int   not null default 0,
+  primary key (user_id, hari)
+);
+
+alter table public.rutin_kuota enable row level security;`;
 
 function openGate(step){ $('#gate').classList.add('on'); gate(step); }
 function closeGate(){ $('#gate').classList.remove('on'); }

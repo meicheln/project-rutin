@@ -164,6 +164,54 @@ function sheetBlock(existing){
     existing ? ()=>{ const dd = day(dayCur); dd.blocks = dd.blocks.filter(x=>x.id!==e.id); commit(); toast('Blok dihapus'); } : null);
 }
 
+/* agenda nyentuh notifikasi, jadi tiap perubahan harus ngejadwalin ulang */
+function simpanAgenda(pesan){
+  commit();
+  try{ Notif.apply(); }catch(e){}
+  if (pesan) toast(pesan);
+}
+
+function sheetAgenda(existing){
+  const e = existing || {};
+  const ul = e.ulang || 'sekali';
+  const hariOn = e.hari || [fromD(view==='day'?dayCur:today()).getDay()];
+  form(existing?'Ubah agenda':'Agenda baru','Rencana yang mau lo tepatin',
+    F.text('agJ','Mau ngapain', e.judul, 'Bimbingan sama dosen') +
+    F.rowgrid(F.time('agS','Mulai', e.mulai||'08:00'), F.time('agE','Selesai', e.selesai||'09:00')) +
+    F.chips('agK','Kegiatan', ACTS, e.kat||'kerja') +
+    F.sel('agU','Ulang', [['sekali','Sekali'],['harian','Tiap hari'],['mingguan','Mingguan']], ul) +
+    F.sel('agIngat','Ingetin', [['0','Nggak usah'],['5','5 menit sebelum'],['15','15 menit sebelum'],
+      ['30','30 menit sebelum'],['60','1 jam sebelum']], String(e.ingat||0)) +
+    `<div class="field" id="agTglW"${ul!=='sekali'?' style="display:none"':''}>
+      <label>Tanggal</label><input class="inp" id="agTgl" type="date" value="${e.tgl || (view==='day'?dayCur:today())}"></div>
+    <div class="field" id="agHariW"${ul!=='mingguan'?' style="display:none"':''}>
+      <label>Hari</label><div class="row" style="gap:6px;flex-wrap:wrap">
+        ${[1,2,3,4,5,6,0].map(w=>`<button type="button" class="chip ${hariOn.includes(w)?'on':''}" data-agh="${w}"
+          style="font-size:12px;padding:7px 12px">${HARI3[w]}</button>`).join('')}</div></div>`,
+    ()=>{
+      const j = val('agJ').trim(), s = val('agS'), en = val('agE');
+      if (!j || !s || !en) return false;
+      const u = val('agU');
+      const hari = $$('[data-agh].on').map(b=>+b.dataset.agh);
+      if (u === 'mingguan' && !hari.length){ toast('Pilih minimal satu hari'); return false; }
+      const o = { id:e.id||uid(), judul:j, kat:val('agK'), mulai:s, selesai:en, ulang:u,
+                  hari: u==='mingguan' ? hari : [],
+                  tgl: u==='sekali' ? (val('agTgl')||today()) : '', ingat: +val('agIngat')||0,
+                  sumber: e.sumber||'manual', oleh: e.oleh||null };
+      const i = S.agenda.findIndex(x=>x.id===o.id);
+      if (i>=0) S.agenda[i] = o; else S.agenda.push(o);
+      simpanAgenda(o.ingat ? 'Agenda disimpan, diingetin ' + o.ingat + ' menit sebelumnya' : (existing?'Agenda diperbarui':'Agenda ditambah'));
+    },
+    existing ? ()=>{ S.agenda = S.agenda.filter(x=>x.id!==e.id); simpanAgenda('Agenda dihapus'); } : null);
+
+  $$('[data-agh]').forEach(b => b.onclick = ()=>{ b.classList.toggle('on'); buzz(5); });
+  $('#agU').onchange = ()=>{
+    const u = val('agU');
+    $('#agTglW').style.display  = u==='sekali'   ? '' : 'none';
+    $('#agHariW').style.display = u==='mingguan' ? '' : 'none';
+  };
+}
+
 function sheetRoutines(){
   const tags = [['pagi','Pagi'],['badan','Badan'],['fokus','Fokus'],['malam','Malam']];
   sheetSaveFn = null; sheetDelFn = null;
@@ -358,7 +406,7 @@ function sheetSettings(){
     const f = ev.target.files[0]; if (!f) return;
     const r = new FileReader();
     r.onload = ()=>{ try{ const o = JSON.parse(r.result); if (!o.v) throw 0;
-      S = o; commit(); closeSheet(); toast('Data dipulihkan'); }catch(e){ toast('File cadangan nggak valid'); } };
+      S = o; migrate(); commit(); closeSheet(); toast('Data dipulihkan'); }catch(e){ toast('File cadangan nggak valid'); } };
     r.readAsText(f);
   };
   g('stReset').onclick = ()=>{ if (confirm('Yakin hapus SEMUA data di HP ini? Nggak bisa dibalikin.')){
@@ -393,7 +441,7 @@ function sheetQuick(){
 const SHEETS = {
   out:()=>sheetTx('out'), in:()=>sheetTx('in'), task:()=>sheetTask(), jam:()=>sheetJam(),
   idea:()=>sheetIdea(), berat:sheetBerat, kalori:sheetKalori, latihan:()=>sheetLatihan(),
-  block:()=>sheetBlock(), routines:sheetRoutines, settings:sheetSettings,
+  block:()=>sheetBlock(), routines:sheetRoutines, settings:sheetSettings, agenda:()=>sheetAgenda(),
   skripsiInfo:sheetSkripsiInfo, babAdd:()=>sheetBab(), bimbingan:()=>sheetBimbingan(),
   quick:sheetQuick,
   jadwalLatihan:sheetJadwalLatihan,
@@ -405,7 +453,7 @@ const SHEETS = {
 
 /* ---------- delegasi event ---------- */
 document.addEventListener('click', ev => {
-  const t = ev.target.closest('[data-go],[data-sheet],[data-rt],[data-mood],[data-energi],[data-air],[data-tx],[data-task],[data-taskedit],[data-bab],[data-bimb],[data-idea],[data-lat],[data-wlog],[data-block],[data-mfilter],[data-kfilter],[data-ifilter],[data-chip],[data-edit]');
+  const t = ev.target.closest('[data-go],[data-sheet],[data-rt],[data-mood],[data-energi],[data-air],[data-tx],[data-task],[data-taskedit],[data-bab],[data-bimb],[data-idea],[data-lat],[data-wlog],[data-block],[data-agenda],[data-mfilter],[data-kfilter],[data-ifilter],[data-chip],[data-edit]');
   if (!t) return;
   const d = t.dataset;
 
@@ -433,6 +481,12 @@ document.addEventListener('click', ev => {
   if (d.lat){ const x = S.badan.latihan.find(v=>v.id===d.lat); x && sheetLatihan(x); return; }
   if (d.wlog){ const x = S.workLogs.find(v=>v.id===d.wlog); x && sheetJam(x); return; }
   if (d.block){ const x = (dayRO(dayCur).blocks||[]).find(v=>v.id===d.block); x && sheetBlock(x); return; }
+  if (d.agenda){
+    // item turunan bukan punya agenda — lempar ke sumber aslinya
+    if (d.agenda.startsWith('lat:')){ bukaSesi(d.agenda.slice(4)); return; }
+    if (d.agenda.startsWith('tgs:')){ progTab = 'kerja'; go('prog'); return; }
+    const x = S.agenda.find(v=>v.id===d.agenda); x && sheetAgenda(x); return;
+  }
 
   if (d.mfilter){ moneyFilter = d.mfilter; moneyLimit = 10; renderMoney(); return; }
   if (d.kfilter){ kerjaFilter = d.kfilter; renderKerja(); return; }

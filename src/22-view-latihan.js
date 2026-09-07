@@ -467,6 +467,7 @@ function bukaSesi(sid, tglSesi){
   $('#ses').classList.add('on');
   document.body.style.overflow = 'hidden';
   gambarSesi();
+  pulihkanIstirahat();
 }
 function tutupSesi(){
   $('#ses').classList.remove('on');
@@ -476,6 +477,8 @@ function tutupSesi(){
 }
 function stopIstirahat(){
   clearInterval(timerIst);
+  LS.del('rutin.ist');
+  Notif.batalIstirahat();
   $('#istBar').classList.remove('on');
   $('#ses').classList.remove('istaktif');
 }
@@ -594,22 +597,42 @@ function gambarSesi(){
   };
 }
 
-/* timer istirahat */
-function mulaiIstirahat(teks){
+/* Timer istirahat.
+   Yang dihitung waktu selesainya, BUKAN jumlah tik — soalnya di gym HP itu ditaruh
+   dan layarnya mati, dan browser/WebView bakal ngerem setInterval sampai berhenti.
+   Sisa waktu selalu diitung ulang dari selisih jam, plus notifikasi buat jaga-jaga
+   kalau prosesnya keburu dibunuh. */
+function detikIstirahat(teks){
   const m = String(teks).match(/([\d,\.]+)\s*(mnt|menit|dtk|detik)/i);
-  let det = 90;
-  if (m){ const n = parseFloat(m[1].replace(',','.')); det = /dtk|detik/i.test(m[2]) ? n : n*60; }
-  let sisa = Math.round(det);
+  if (!m) return 90;
+  const n = parseFloat(m[1].replace(',','.'));
+  return Math.round(/dtk|detik/i.test(m[2]) ? n : n*60);
+}
+function mulaiIstirahat(teks){
+  const det = detikIstirahat(teks);
+  const akhir = Date.now() + det*1000;
+  LS.set('rutin.ist', { akhir, det });      // selamat walau app-nya dibunuh
+  Notif.alarmIstirahat(akhir);
+  jalanIstirahat(akhir, det);
+}
+function jalanIstirahat(akhir, det){
   clearInterval(timerIst);
   $('#istBar').classList.add('on');
   $('#ses').classList.add('istaktif');
-  const gambar = ()=>{ $('#istWaktu').textContent = `${Math.floor(sisa/60)}:${pad(sisa%60)}`;
-    $('#istIsi').style.width = (100 - sisa/det*100).toFixed(1) + '%'; };
-  gambar();
-  timerIst = setInterval(()=>{
-    sisa--; gambar();
+  const gambar = ()=>{
+    const sisa = Math.max(0, Math.round((akhir - Date.now())/1000));
+    $('#istWaktu').textContent = `${Math.floor(sisa/60)}:${pad(sisa%60)}`;
+    $('#istIsi').style.width = (100 - sisa/det*100).toFixed(1) + '%';
     if (sisa <= 0){ stopIstirahat(); buzz([90,60,90]); toast('Istirahat habis — lanjut'); }
-  }, 1000);
+  };
+  gambar();
+  timerIst = setInterval(gambar, 250);      // 250ms biar angkanya langsung bener pas balik dari layar mati
+}
+/* dipanggil pas sesi dibuka lagi — istirahat yang belum abis dilanjutin, bukan direset */
+function pulihkanIstirahat(){
+  const r = LS.get('rutin.ist', null);
+  if (r && r.akhir > Date.now()) jalanIstirahat(r.akhir, r.det || 90);
+  else if (r) LS.del('rutin.ist');
 }
 document.addEventListener('click', ev=>{ if (ev.target.closest('#istLewati')) stopIstirahat(); });
 

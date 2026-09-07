@@ -19,6 +19,48 @@ const intake = d => (S.badan.asupan[d] || {kcal:0, air:0});
 const jamMinggu = () => { const s7 = addDays(today(),-6);
   return sum(S.workLogs.filter(w=>w.d>=s7), w=>w.jam); };
 
+/* ---------- agenda: rencana hari itu ---------- */
+const menitAgenda = a => {
+  if (a.menit) return a.menit;
+  if (!a.mulai || !a.selesai) return 0;
+  let s = tmin(a.mulai), e = tmin(a.selesai); if (e <= s) e += 1440;
+  return e - s;
+};
+
+/* item manual + sesi latihan hari itu + tugas jatuh tempo. yang turunan nggak disimpan di S. */
+function agendaHari(d){
+  const w = fromD(d).getDay();
+  const out = (S.agenda||[]).filter(a =>
+    a.ulang === 'harian'   ? true :
+    a.ulang === 'mingguan' ? (a.hari||[]).includes(w) :
+                             a.tgl === d);
+  try{
+    let jam = tmin(LT().jamIngat || '06:30');
+    sesiHari(d).forEach(sid => {
+      const p = PROGRAM[sid]; if (!p) return;
+      out.push({ id:'lat:'+sid, judul:p.n.split(' — ')[0], kat:'olahraga',
+                 mulai:mtime(jam), selesai:mtime(jam + p.menit), sumber:'latihan', oleh:null });
+      jam += p.menit;
+    });
+  }catch(e){}
+  S.tasks.filter(t => !t.done && t.due === d).forEach(t =>
+    out.push({ id:'tgs:'+t.id, judul:t.t, kat:'kerja', mulai:'', selesai:'',
+               menit:Math.round((+t.est||0)*60), sumber:'tugas', oleh:null }));
+  // yang tanpa jam ditaruh paling bawah
+  return out.sort((a,b) => (a.mulai?tmin(a.mulai):9999) - (b.mulai?tmin(b.mulai):9999));
+}
+
+/* menit per kategori: yang direncanain vs yang beneran kecatat di blocks */
+function rencanaVsAktual(d){
+  const plan = {}, real = {};
+  agendaHari(d).forEach(a => { const m = menitAgenda(a); if (m) plan[a.kat] = (plan[a.kat]||0) + m; });
+  (dayRO(d).blocks||[]).forEach(b => { let s = tmin(b.s), e = tmin(b.e); if (e <= s) e += 1440;
+    real[b.c] = (real[b.c]||0) + (e - s); });
+  return [...new Set([...Object.keys(plan), ...Object.keys(real)])]
+    .map(k => ({ kat:k, plan:plan[k]||0, real:real[k]||0 }))
+    .sort((a,b) => Math.max(b.plan,b.real) - Math.max(a.plan,a.real));
+}
+
 function deadlines(){
   const out = [];
   S.skripsi.bab.forEach(b=>{ if(b.dl && b.st!=='acc') out.push({t:b.n, d:b.dl, k:'Skripsi'}); });
@@ -56,6 +98,7 @@ function renderHome(){
   const w = lastWeight();
   const ins = intake(d);
   const od = overdue().length, dt = dueToday().length;
+  const ag = agendaHari(d), now = new Date(), nowM = now.getHours()*60 + now.getMinutes();
 
   // tren 7 hari rutinitas
   const tren7 = [...Array(7)].map((_,i)=>{ const dd = addDays(d, -(6-i));
@@ -100,6 +143,22 @@ function renderHome(){
     <div class="row"><span class="dot" style="background:var(${od?'--c-bad':'--c-warn'})"></span>
     <div class="grow sm"><b>${od?od+' tugas telat':''}${od&&dt?' · ':''}${dt?dt+' jatuh tempo hari ini':''}</b></div>
     <button class="chip" data-go="prog" data-ptab="kerja">Lihat</button></div></div>`:''}
+
+  <div class="sect"><h2>Agenda hari ini</h2><button class="link" data-sheet="agenda">+ Tambah</button></div>
+  <div class="card">
+    ${ag.length ? ag.map(a=>{
+      const A = actOf(a.kat), mn = menitAgenda(a);
+      const s = a.mulai ? tmin(a.mulai) : null, e = s!==null ? s+mn : null;
+      const kini = s!==null && nowM>=s && nowM<e, lewat = e!==null && nowM>=e;
+      return `<button class="item press" data-agenda="${a.id}" style="width:100%;text-align:left;background:none">
+        <span class="dot" style="background:var(${A.c});${lewat&&!kini?'opacity:.35':''}"></span>
+        <span class="grow"><span class="t${lewat&&!kini?' dim':''}" style="display:block">${esc(a.judul)}</span>
+          <span class="s">${a.mulai? a.mulai+'–'+a.selesai : 'belum ada jamnya'} · ${A.n}${mn?' · '+hmShort(mn):''}</span></span>
+        ${kini?`<span class="badge">sekarang</span>`:''}
+      </button>`;
+    }).join('') : `<div class="empty"><b>Belum ada rencana hari ini</b>Tulis dulu mau ngapain, nanti dibandingin sama yang beneran kejadian.
+      <div style="margin-top:14px"><button class="btn sm" data-sheet="agenda">Tambah agenda</button></div></div>`}
+  </div>
 
   <div class="sect"><h2>Bulan ini</h2><span class="link" data-go="money">Detail →</span></div>
   <div class="card">
@@ -192,6 +251,7 @@ function renderDay(){
   const grouped = { pagi:'Pagi', badan:'Badan', fokus:'Fokus', malam:'Malam' };
 
   const sm = sleepMin(d), targetTidurM = (+S.settings.targetTidur||7)*60;
+  const rva = rencanaVsAktual(d);
 
   $('#dayBody').innerHTML = `
   <div class="grid3" style="margin-bottom:12px">
@@ -246,6 +306,27 @@ function renderDay(){
         <span class="xs dim tnum" style="width:34px;text-align:right">${Math.round(mn/tercatat*100)}%</span>
       </div>`).join('')}`:''}
   </div>
+
+  ${rva.length?`<div class="sect"><h2>Rencana vs kejadian</h2><button class="link" data-sheet="agenda">+ Agenda</button></div>
+  <div class="card">
+    ${rva.map(r=>{
+      // garis rencana ditaruh di posisi tetap, jadi tiap baris bisa dibandingin sekali lihat:
+      // batang pendek dari garis = kurang, lewat garis = kebablasan
+      const A = actOf(r.kat), ANC = 68, ada = r.plan > 0;
+      const w = ada ? Math.min(r.real / r.plan * ANC, 100) : 100;
+      return `<div style="margin-bottom:13px">
+        <div class="row between xs" style="margin-bottom:6px">
+          <span class="row" style="gap:7px"><span class="dot" style="background:var(${A.c})"></span>${A.n}</span>
+          <span class="tnum dim">${ada
+            ? `rencana ${hmShort(r.plan)} · nyata <b style="color:var(--text)">${r.real?hmShort(r.real):'–'}</b>`
+            : `<b style="color:var(--text)">${hmShort(r.real)}</b> di luar rencana`}</span>
+        </div>
+        <div class="bar"><i style="width:${w.toFixed(0)}%;background:${cssv(A.c)};opacity:${ada?1:.4}"></i>
+          ${ada?`<b style="left:calc(${ANC}% - 1px)"></b>`:''}</div>
+      </div>`;
+    }).join('')}
+    <div class="xs dim">Garis = rencana lo. Batang lewat garis berarti makan waktu lebih lama.</div>
+  </div>`:''}
 
   <div class="sect"><h2>Catatan hari ini</h2></div>
   <div class="card">

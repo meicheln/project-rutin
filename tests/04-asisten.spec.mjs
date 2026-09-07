@@ -26,8 +26,18 @@ export async function jalan(t) {
     hasil.bab = AI_RUN.ubah_bab_skripsi({ bab: '3', progres: 70, status: 'revisi' });
     hasil.babAngka = AI_RUN.ubah_bab_skripsi({ bab: 'BAB I', status: 'acc' });
     hasil.berat = AI_RUN.catat_berat({ kg: 67.2 });
+    // sleepMin() baca jam tidur KEMARIN ke jam bangun HARI INI — jadi kemarin harus diset juga,
+    // bukan ngandelin angka acak dari data contoh (yang gesernya beda tiap hari dalam seminggu)
+    hasil.tidurKemarin = AI_RUN.atur_jam_tidur({ tidur: '23:30', tanggal: addDays(today(), -1) });
     hasil.tidur = AI_RUN.atur_jam_tidur({ tidur: '23:30', bangun: '06:15' });
     hasil.target = AI_RUN.atur_target({ budget_bulanan: 3000000, target_air: 10 });
+    S.agenda = [];
+    hasil.agenda = AI_RUN.tambah_agenda({ judul: 'Bimbingan', mulai: '09:00', selesai: '10:00', kategori: 'kelas' });
+    hasil.agendaMingguan = AI_RUN.tambah_agenda({ judul: 'Ngampus', mulai: '07:00', selesai: '12:00', kategori: 'kelas', ulang: 'mingguan', hari: [1, 3] });
+    hasil.agendaTanpaHari = AI_RUN.tambah_agenda({ judul: 'Kosong', mulai: '07:00', selesai: '08:00', kategori: 'kelas', ulang: 'mingguan' });
+    hasil.geser = AI_RUN.geser_agenda({ judul: 'bimbingan', mulai: '13:00', selesai: '14:00' });
+    hasil.geserSalah = AI_RUN.geser_agenda({ judul: 'nggak ada begini' });
+    hasil.hapusAgenda = AI_RUN.geser_agenda({ judul: 'Ngampus', hapus: true });
     const sesudah = { tx: S.txns.length, tugas: S.tasks.length, ide: S.ide.length };
     return {
       hasil, sebelum, sesudah,
@@ -36,6 +46,7 @@ export async function jalan(t) {
       bab3: S.skripsi.bab[2], bab1: S.skripsi.bab[0],
       budget: S.settings.budget, air: S.settings.targetAir,
       lamaTidur: sleepMin(today()),
+      agendaSisa: S.agenda.map(a => a.judul), agendaJam: S.agenda[0].mulai,
     };
   });
 
@@ -52,6 +63,12 @@ export async function jalan(t) {
   t.eq(alat.budget, 3000000, 'budget keubah lewat alat');
   t.eq(alat.air, 10, 'target air keubah lewat alat');
   t.eq(alat.lamaTidur, 405, 'jam tidur lewat alat kehitung jadi durasi');
+  t.ok(alat.hasil.agenda.includes('Bimbingan'), 'agenda sekali kebikin lewat alat');
+  t.ok(alat.hasil.agendaMingguan.includes('Senin'), 'agenda mingguan nyebut nama harinya, bukan angka');
+  t.ok(/sebutin harinya/i.test(alat.hasil.agendaTanpaHari), 'agenda mingguan tanpa hari ditolak, bukan diem-diem kesimpan');
+  t.eq(alat.agendaJam, '13:00', 'geser_agenda beneran ngubah jam');
+  t.ok(/Yang ada/.test(alat.hasil.geserSalah), 'agenda salah judul dibalas daftar pilihan');
+  t.eq(alat.agendaSisa, ['Bimbingan'], 'geser_agenda dengan hapus:true ngebuang itemnya');
 
   // ---------- putaran tool-use penuh dengan API palsu ----------
   await page.evaluate(() => {
@@ -94,6 +111,7 @@ export async function jalan(t) {
     alatDikirim: window.__panggil.find(c => c.jalur === '/v1/messages').badan.tools.length,
     adaRingkasan: /rutinitas_hari_ini/.test(window.__panggil.find(c => c.jalur === '/v1/messages').badan.system),
     adaLatihan: /latihan_hari_ini/.test(window.__panggil.find(c => c.jalur === '/v1/messages').badan.system),
+    adaNama: /"pengguna"|Blay/.test(window.__panggil.find(c => c.jalur === '/v1/messages').badan.system),
   }));
   t.eq(chat.txBaru, txSblm + 1, 'alat dari asisten beneran nulis transaksi');
   t.eq(chat.ideTerakhir, 'Ide dari asisten', 'ide dari asisten kesimpan');
@@ -101,7 +119,21 @@ export async function jalan(t) {
   t.ok(chat.putaran >= 3, `putaran tool-use lanjut sampai selesai (${chat.putaran} panggilan)`);
   t.ok(chat.alatDikirim >= 19, `semua alat dikirim ke model (${chat.alatDikirim})`);
   t.ok(chat.adaRingkasan, 'ringkasan keadaan aplikasi ikut di system prompt');
+  t.ok(!chat.adaNama, 'nama pengguna nggak ikut kekirim ke penyedia AI');
   t.ok(chat.adaLatihan, 'sesi latihan hari ini ikut di ringkasan');
+
+  // ---------- urungkan di panel asisten ----------
+  const urungAi = await page.evaluate(() => {
+    const baris = document.querySelectorAll('#aiLog .aiAct.urung');
+    const sblm = { tx: S.txns.length, ide: S.ide.length };
+    if (baris.length) baris[0].querySelector('button').click();
+    return { jumlah: baris.length, sblm, ssdh: { tx: S.txns.length, ide: S.ide.length },
+             teks: baris.length ? baris[0].textContent : '' };
+  });
+  t.eq(urungAi.jumlah, 1, 'cuma giliran yang beneran nulis yang dapat baris Urungkan, bukan alat tak dikenal');
+  t.eq(urungAi.ssdh.tx, urungAi.sblm.tx - 1, 'urungkan ngebalikin transaksi yang dicatat asisten');
+  t.eq(urungAi.ssdh.ide, urungAi.sblm.ide - 1, 'urungkan ngebalikin seluruh giliran, bukan satu alat doang');
+  t.ok(/Dibatalin/.test(urungAi.teks), 'barisnya berubah jadi keterangan sesudah diurungkan');
 
   // alat yang nggak dikenal nggak boleh bikin macet
   t.ok(!/alat_yang_tidak_ada/.test(await page.evaluate(() => document.getElementById('aiLog').textContent)) ||

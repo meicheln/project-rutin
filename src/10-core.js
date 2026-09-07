@@ -43,8 +43,19 @@ const hmShort = m => { m = Math.round(m); const h = Math.floor(m/60), mm = m%60;
 const cssv = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim() || v;
 
 function toast(msg, ms=2100){
-  const t = $('#toast'); t.textContent = msg; t.classList.add('on');
+  const t = $('#toast'); t.textContent = msg;
+  t.classList.remove('aksi'); t.classList.add('on');
   clearTimeout(t._t); t._t = setTimeout(()=>t.classList.remove('on'), ms);
+}
+/* toast dengan satu tombol — dipakai buat Urungkan */
+function toastAksi(msg, label, fn, ms=6000){
+  const t = $('#toast');
+  t.innerHTML = `<span></span><button type="button" id="toastBtn"></button>`;
+  t.firstChild.textContent = msg;
+  $('#toastBtn').textContent = label;
+  $('#toastBtn').onclick = ()=>{ t.classList.remove('on','aksi'); fn(); };
+  t.classList.add('on','aksi');
+  clearTimeout(t._t); t._t = setTimeout(()=>t.classList.remove('on','aksi'), ms);
 }
 function buzz(p=8){ try{ navigator.vibrate && navigator.vibrate(p); }catch(e){} }
 
@@ -131,6 +142,7 @@ function seed(){
       {id:uid(), n:'Tidur sebelum jam 12',    tag:'malam'},
     ],
     days: {},            // 'YYYY-MM-DD': {bangun,tidur,mood,energi,catatan,rt:{},blocks:[]}
+    agenda: [],          // {id,judul,kat,mulai,selesai,ulang,hari:[],tgl,ingat,sumber,oleh} — rencana, bukan catatan
     txns: [],            // {id,d,type:'in'|'out',amt,cat,note}
     tasks: [],           // {id,t,proj,prio,due,done,doneAt,est}
     workLogs: [],        // {id,d,jam,proj,note}
@@ -156,14 +168,47 @@ function seed(){
 }
 
 let S = LS.get('rutin.state', null) || seed();
-// migrasi ringan kalau ada field baru
-(function migrate(){
+/* Migrasi ringan kalau ada field baru. Wajib dipanggil di TIAP jalur yang nimpa S dari
+   luar — cloud, IndexedDB, file cadangan — bukan cuma pas boot. State lama nggak punya
+   field yang ditambah belakangan, dan kodenya bakal nabrak undefined tanpa ini. */
+function migrate(){
   const base = seed();
   for (const k in base) if (!(k in S)) S[k] = base[k];
   for (const k in base.settings) if (!(k in S.settings)) S.settings[k] = base.settings[k];
   if (!S.skripsi.bab) S.skripsi.bab = base.skripsi.bab;
   if (!S.badan.asupan) S.badan.asupan = {};
-})();
+}
+migrate();
+
+/* Urungkan. Snapshot seluruh S sebagai string — semahal yang udah dibayar commit()
+   tiap perubahan, jadi nggak nambah beban yang berarti. Dipakai buat jalur yang nulis
+   TANPA lo lihat formnya: balasan notifikasi dan alat asisten.
+   ponytail: tumpukan dibatasi 5 biar hemat memori. Kalau S udah lewat beberapa MB
+   (LIMITATIONS §2), ganti jadi snapshot per-cabang aja. */
+const Undo = {
+  tumpuk: [],
+  simpan(label){
+    try{ this.tumpuk.push({ label, s: JSON.stringify(S) }); }catch(e){ return; }
+    if (this.tumpuk.length > 5) this.tumpuk.shift();
+  },
+  ada(){ return this.tumpuk.length > 0; },
+  balikin(){
+    const x = this.tumpuk.pop();
+    if (!x) return null;
+    S = JSON.parse(x.s); migrate(); commit();
+    return x.label;
+  }
+};
+/* pasang aksi + tawarin urungkan dalam satu langkah */
+function tulisBisaUrung(label, jalan){
+  Undo.simpan(label);
+  const pesan = jalan();
+  toastAksi(pesan || label, 'Urungkan', ()=>{
+    const l = Undo.balikin();
+    if (l !== null) toast('Dibatalin: ' + l);
+  });
+  return pesan;
+}
 
 let pushTimer = null;
 function commit(rerender = true){
@@ -330,7 +375,7 @@ const Cloud = {
       setSync('sync');
       const remote = await this.pull();
       if (remote && remote.data && remote.data.updatedAt && remote.data.updatedAt > (S.updatedAt||0)){
-        S = remote.data;
+        S = remote.data; migrate();
         LS.set('rutin.state', S);
         setSync('ok'); render(); toast('Data terbaru ditarik dari cloud');
       } else {

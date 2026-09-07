@@ -1,0 +1,112 @@
+name: APK
+
+# Build APK di server GitHub, jadi nggak perlu pasang JDK + Android SDK di komputer.
+#
+# Butuh dua secret di repo (Settings -> Secrets and variables -> Actions):
+#   RUTIN_KEYSTORE_B64   isi dist/rutin-release.keystore yang di-base64
+#   RUTIN_KEYSTORE_PASS  password keystore itu
+#
+# Tanpa keduanya, build-nya gagal dengan pesan yang nyebut mana yang kurang —
+# bukan diam-diam nandatanganin pakai keystore baru. Keystore yang beda bikin
+# Android nolak nimpa aplikasi yang udah kepasang, dan data lokal ikut hilang.
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, master]
+    tags: ['v*']
+    paths-ignore:
+      - 'docs/**'
+      - '**.md'
+
+permissions:
+  contents: write        # buat bikin rilis pas ada tag
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Cek secret ada
+        env:
+          B64: ${{ secrets.RUTIN_KEYSTORE_B64 }}
+          PASS: ${{ secrets.RUTIN_KEYSTORE_PASS }}
+        run: |
+          kurang=""
+          [ -n "$B64" ]  || kurang="$kurang RUTIN_KEYSTORE_B64"
+          [ -n "$PASS" ] || kurang="$kurang RUTIN_KEYSTORE_PASS"
+          if [ -n "$kurang" ]; then
+            echo "::error::Secret belum diisi:$kurang — lihat docs/ANDROID.md bagian GitHub Actions"
+            exit 1
+          fi
+
+      - name: Android SDK
+        run: |
+          yes | sdkmanager --licenses > /dev/null 2>&1 || true
+          sdkmanager "platforms;android-35" "build-tools;35.0.0" > /dev/null
+
+      - run: npm ci
+
+      - name: Build & tes
+        run: |
+          npm run build
+          npx playwright install --with-deps chromium
+          node tests/jalan.mjs
+
+      - name: Siapkan proyek Capacitor
+        env:
+          RUTIN_KEYSTORE_PASS: ${{ secrets.RUTIN_KEYSTORE_PASS }}
+        run: node tools/android.mjs siapkan
+
+      # siapkan bikin keystore baru kalau belum ada; itu ditimpa yang asli di sini,
+      # sebelum ada yang ditandatanganin
+      - name: Pasang keystore asli
+        env:
+          B64: ${{ secrets.RUTIN_KEYSTORE_B64 }}
+        run: |
+          echo "$B64" | base64 -d > ../rutin-android/android/rutin-release.keystore
+          ls -l ../rutin-android/android/rutin-release.keystore
+
+      - name: Ikon & splash
+        run: |
+          python3 -m pip install --quiet pillow
+          python3 tools/buat-ikon.py ../rutin-android/android/app/src/main/res
+
+      - name: Build APK
+        env:
+          RUTIN_KEYSTORE_PASS: ${{ secrets.RUTIN_KEYSTORE_PASS }}
+        run: node tools/android.mjs build
+
+      - name: Pastiin ketandatanganin keystore yang bener
+        run: |
+          apksigner=$(find "$ANDROID_HOME/build-tools" -name apksigner | sort | tail -1)
+          "$apksigner" verify --print-certs dist/Rutin.apk | tee /tmp/cert.txt
+          grep -qi "CN=Rutin" /tmp/cert.txt || {
+            echo "::error::APK ditandatanganin sertifikat yang salah — jangan dipasang, dia bakal nolak nimpa yang lama"
+            exit 1
+          }
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Rutin-apk
+          path: dist/Rutin.apk
+          retention-days: 30
+
+      - name: Rilis (cuma kalau di-tag)
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" dist/Rutin.apk
+             --title "Rutin $GITHUB_REF_NAME"
+             --notes "APK Android. Pasang langsung; kalau nimpa versi lama, data lokal tetap aman."

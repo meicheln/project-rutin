@@ -2,7 +2,7 @@
 
 **A personal life tracker built to solve my own problem.** Daily activity from waking to sleeping, money in and out, thesis progress, work, body, a strength-and-basketball training program, and content ideas — in one app.
 
-One HTML file, zero client dependencies, wrapped into an Android app. It works fully offline and has a Claude assistant inside that logs and edits your data from plain sentences.
+One HTML file, zero client dependencies, wrapped into an Android app. It works fully offline and has a Claude assistant inside that logs and edits your data from plain sentences — from the chat panel, or by replying to a notification without opening the app.
 
 [![CI](https://github.com/GITHUB-USERNAME/rutin/actions/workflows/ci.yml/badge.svg)](https://github.com/GITHUB-USERNAME/rutin/actions/workflows/ci.yml)
 [![Live demo](https://img.shields.io/badge/demo-try%20it%20now-2ea44f)](https://GITHUB-USERNAME.github.io/rutin/)
@@ -130,6 +130,10 @@ docs/           architecture, features, limitations, roadmap, setup guides
 
 **Native bridge is isolated.** One file wraps everything Capacitor-specific — status bar, notifications, back button, and routing the Anthropic API call through native HTTP to sidestep CORS in the Android WebView. The rest of the code doesn't know it's in an app.
 
+**Reminders are two-way.** Agenda entries, the morning and evening nudges, and the gym rest timer all schedule real Android notifications, and the first two accept a typed reply straight from the lock screen. A small local parser turns `25rb makan`, `2 gelas` or `berat 67` into records with no network and no API key; anything it doesn't recognise lands in today's note rather than being dropped. Every such write offers an undo, because you never saw a form.
+
+**The Anthropic key can stay off the device.** `supabase/functions/asisten` is a thin authenticated proxy: it verifies your Supabase session, forwards only `/v1/messages` and `/v1/models`, caps the body, and enforces a daily per-user quota. Deploy it and the app authenticates with its own session token instead of holding a key. Setup: **[docs/SUPABASE.md](docs/SUPABASE.md)**
+
 Full write-up with the data model, render pipeline, sync protocol, and assistant tool loop: **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)**
 
 ---
@@ -189,8 +193,8 @@ I keep an honest list of what's wrong with this, ranked by how likely it is to a
 The three that matter most:
 
 - **Sync can silently drop changes.** It's last-write-wins on the whole document. Two devices both edited offline, and one side's work disappears. Only bites with real multi-device use; fine on a single phone.
-- **No undo, anywhere.** And the assistant writes without confirming. If the model misreads "two million" as "two thousand", the transaction just lands.
-- **The rest timer dies when the screen turns off.** It's a JavaScript interval. In a gym, putting your phone down mid-rest isn't an edge case, it's normal.
+- **Undo only covers the blind writes.** An assistant turn or a notification reply can be taken back; deleting a transaction or a task from the UI still can't.
+- **The Anthropic key sits in the clear unless you deploy the proxy.** There's an Edge Function that keeps it server-side, but nothing forces you to use it, and a device that never signs in to Supabase has no other option.
 
 And the one that says the most about the project: **the entire training program was designed to raise vertical jump, and the app never asks how high you jump.** Everything else is tracked — load, contacts, duration, notes — except the number that defines success. It's the first item on the roadmap.
 
@@ -202,11 +206,11 @@ What's planned, ordered by value per hour of work: **[docs/ROADMAP.md](docs/ROAD
 
 | | |
 |---|---|
-| Lines of code | ~3,950 |
-| Bundle size | 246 KB, unminified |
+| Lines of code | ~4,400 |
+| Bundle size | 262 KB, unminified |
 | Client dependencies | 0 |
-| Test assertions | 192 |
-| Assistant tools | 19 |
+| Test assertions | 266 |
+| Assistant tools | 22 |
 | Modules | 6 screens + assistant + session panel |
 
 ---
@@ -219,6 +223,7 @@ What's planned, ordered by value per hour of work: **[docs/ROADMAP.md](docs/ROAD
 | [FEATURES.md](docs/FEATURES.md) | Full feature inventory |
 | [LIMITATIONS.md](docs/LIMITATIONS.md) | What's wrong with it, honestly |
 | [ROADMAP.md](docs/ROADMAP.md) | What's next and why |
+| [ROADMAP-ASSISTANT.md](docs/ROADMAP-ASSISTANT.md) | The arc from logger to assistant: agenda, replyable notifications, server-side key, remote control |
 | [TRAINING-PROGRAM.md](docs/TRAINING-PROGRAM.md) | The full gym and basketball program |
 | [ANDROID.md](docs/ANDROID.md) | Building the APK |
 | [SUPABASE.md](docs/SUPABASE.md) | Optional cloud sync |

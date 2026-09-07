@@ -4,6 +4,8 @@ Ordered by value per hour of work. Estimates assume one person who already knows
 
 Most of section A is **fixing existing limitations**, not adding features. That's deliberate — see [LIMITATIONS.md](LIMITATIONS.md). Adding a seventh module on top of a leaky foundation just adds more to fix later.
 
+For the separate arc that turns Rutin from a logger into an assistant — agenda, plan vs. actual, notifications you can reply to, and a secured remote channel — see [ROADMAP-ASSISTANT.md](ROADMAP-ASSISTANT.md).
+
 ---
 
 ## A. Do these first
@@ -22,27 +24,24 @@ Tool:     catat_tes_lompatan for the assistant
 
 Without it, nobody can tell whether the program works. With it, every other training decision has a basis.
 
-### A2. Rest timer that survives a dark screen — 2 hours
+### A2. Rest timer that survives a dark screen — DONE
 
-The timer currently dies if the phone is set down mid-rest. In a gym that isn't a rare case, it's the normal one.
+Holds the end timestamp, redraws from the clock, schedules its own notification, and resumes an
+unfinished rest when the session is reopened. See [LIMITATIONS §6](LIMITATIONS.md).
+
+### A3. Undo — half done
+
+The urgent half shipped: every path that writes **without showing you a form first** — an assistant
+turn and a notification reply — now offers *Urungkan*, backed by a 5-deep snapshot stack. Undo-after
+was chosen over confirm-before; the reasoning is in [LIMITATIONS §4](LIMITATIONS.md).
+
+Still open: UI deletes (transaction, task, idea, block, agenda, routine) are guarded only by a
+`confirm()` and are not undoable, and neither is a full reset or a backup restore.
 
 ```
-start:  store the end timestamp, schedule a local notification
-show:   remaining = end − now, not a tick count
-resume: recompute from the timestamp
+Route the six sheet delete handlers through the same Undo.simpan()
+Swap their confirm() for the "Urungkan" toast — fewer taps, more reversible
 ```
-
-### A3. Undo — one day
-
-There is no undo anywhere, and the assistant writes without confirmation.
-
-```
-Stack of the last 20 actions, each a snapshot of the touched branch
-"Undo" toast for 6 seconds after any destructive action
-Assistant tools touching money or deleting → one-tap confirmation
-```
-
-The assistant part is the urgent half: misreading "two million" as "two thousand" currently lands with no brake.
 
 ### A4. Shooting percentage — half a day
 
@@ -127,9 +126,10 @@ The program says "85–90% 1RM" but the app doesn't know what the 1RM is. Comput
 
 ## D. Make daily use lighter
 
-### D1. Context-aware notifications — 3 hours
+### D1. Context-aware notifications — DONE
 
-Currently static. "Check off your morning routine" fires even if everything was done last night. Compose the text at schedule time from that day's state.
+Morning, evening and agenda bodies are composed from live state, and `Notif.apply()` reruns when the
+app backgrounds so they stay fresh. The residual staleness is [LIMITATIONS §18](LIMITATIONS.md).
 
 ### D2. Search — 3 hours
 
@@ -183,12 +183,14 @@ If working through it sequentially:
 
 ```
 1. A1  track vertical jump      ← without it all other training work is blind
-2. A2  timer surviving sleep    ← bites most often
-3. A3  undo + AI confirmation   ← riskiest thing today
-4. A5  block weighting          ← 1 hour, makes the numbers honest
-5. A4  shooting percentage
-6. C2  load suggestions
-7. C1  periodization
+2. A5  block weighting          ← 1 hour, makes the numbers honest
+3. A3  undo for UI deletes      ← the blind-write half is already done
+4. A4  shooting percentage
+5. C2  load suggestions
+6. C1  periodization
 ```
 
-The first four total about two and a half days, and close every **[!]** in [LIMITATIONS.md](LIMITATIONS.md) except sync and state size — the two that genuinely haven't bitten yet while usage stays on a single phone.
+A2 and the risky half of A3 are done, along with the whole agenda/notification arc in
+[ROADMAP-ASSISTANT.md](ROADMAP-ASSISTANT.md). Of the remaining **[!]** items in
+[LIMITATIONS.md](LIMITATIONS.md), only sync and state size are left — the two that genuinely haven't
+bitten yet while usage stays on a single phone.

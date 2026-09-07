@@ -88,6 +88,37 @@ export async function jalan(t) {
   t.eq(tidur.dinihari, 420, 'tidur dini hari 01:00 → 08:00 = 7 jam');
   t.eq(tidur.aneh, 30, 'durasi ganjil tetap dihitung apa adanya, bukan dibuang');
 
+  // --- agenda: pengulangan, item turunan, rencana vs kejadian ---
+  const ag = await page.evaluate(() => {
+    const d = today(), w = fromD(d).getDay();
+    S.agenda = [
+      { id: 'a1', judul: 'Harian',      kat: 'skripsi', mulai: '19:00', selesai: '21:00', ulang: 'harian',   hari: [],   tgl: '' },
+      { id: 'a2', judul: 'Mingguan',    kat: 'kelas',   mulai: '07:00', selesai: '09:00', ulang: 'mingguan', hari: [w],  tgl: '' },
+      { id: 'a3', judul: 'Besok doang', kat: 'kerja',   mulai: '10:00', selesai: '11:00', ulang: 'sekali',   hari: [],   tgl: addDays(d, 1) },
+    ];
+    S.tasks = [{ id: 't1', t: 'Kirim revisi', proj: '', prio: 'sedang', due: d, est: 2, done: false, doneAt: '' }];
+    LT().jadwal = { 0: [], 1: [], 2: [], 3: [], 4: [], 5: [], 6: [] };
+    LT().jadwal[w] = ['lowerA'];
+    LT().jamIngat = '06:00';
+
+    const list = agendaHari(d);
+    const o = day(d);
+    o.blocks = [{ id: 'b1', s: '19:00', e: '19:40', c: 'skripsi', t: '' }];   // niat 2 jam, jadinya 40 menit
+    return {
+      judul: list.map(x => x.judul),
+      latihan: list.find(x => x.sumber === 'latihan'),
+      menitTugas: menitAgenda(list.find(x => x.judul === 'Kirim revisi')),
+      skripsi: rencanaVsAktual(d).find(r => r.kat === 'skripsi'),
+      besok: agendaHari(addDays(d, 1)).map(x => x.judul),
+    };
+  });
+  t.eq(ag.judul, ['Lower A', 'Mingguan', 'Harian', 'Kirim revisi'], 'agenda urut per jam, yang tanpa jam paling bawah');
+  t.eq(ag.latihan.mulai, '06:00', 'sesi latihan mulai dari jam pengingat');
+  t.eq(ag.latihan.selesai, '07:25', 'sesi latihan selesai = mulai + durasi program (85 menit)');
+  t.eq(ag.menitTugas, 120, 'tugas tanpa jam nyumbang menit dari perkiraan jamnya');
+  t.eq(ag.skripsi, { kat: 'skripsi', plan: 120, real: 40 }, 'rencana vs kejadian: niat 2 jam, kecatat 40 menit');
+  t.eq(ag.besok, ['Besok doang', 'Harian'], 'yang mingguan nggak bocor ke hari lain, yang harian ikut terus');
+
   // --- penyimpanan tahan localStorage mati ---
   const simpan = await page.evaluate(() => {
     const asli = Storage.prototype.setItem;

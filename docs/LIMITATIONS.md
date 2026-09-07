@@ -66,31 +66,86 @@ At current data sizes this is fast. What will show first: the Money screen in a 
 
 ---
 
-## 4. [!] No undo, anywhere
+## 4. Undo covers the blind writes, not the visible ones
 
-Deleting a transaction, deleting a task, or hitting full reset is immediate and permanent. The only confirmation is a browser `confirm()`.
+There is now an undo stack (last 5 states, whole-`S` snapshots as strings) behind the two paths that
+write **without you seeing a form first**:
 
-The riskiest part: **the assistant writes without asking**. If the model misreads "two million" as "two thousand", the transaction just lands. The green checked line does show what it did, but that's notification after the fact, not permission before it.
+- an assistant turn that calls any writing tool gets an *Urungkan* row under its actions
+- a notification reply gets an *Urungkan* button in its toast for six seconds
 
-**The fix.** An undo stack holding the last 20 actions as lightweight snapshots of the touched branch, with a "Undo" toast. For the assistant, require a one-tap confirmation on any tool that touches money or deletes anything.
+The design choice: **undo after, rather than confirm before.** A confirmation dialog on every logged
+expense costs a tap every single time to guard against a rare misparse, and the result line already
+shows the parsed amount — so the mistake is visible either way. Undo makes it reversible without
+taxing the correct case. If a confirmation step is wanted anyway, the natural trigger is an amount
+above a threshold, not every write.
+
+**Still missing.** Deleting a transaction, task, idea, or block from the UI is guarded only by a
+browser `confirm()` and is not undoable. Those are lower risk — you are looking at the thing you are
+deleting — but they should join the stack. Full reset and backup restore are likewise final.
+
+The stack is memory-only and dies with the app. Snapshotting the whole state is fine while `S` is a
+few hundred KB; past a few MB (§2) it should become per-branch snapshots.
 
 ---
 
-## 5. The API key is stored in the clear
+## 5. The free Gemini tier trains on what you send it
 
-The Anthropic key sits in `localStorage` as plain text. Inside the APK that storage is app-private and reasonably safe from other apps. On the web, anyone who can open devtools on that device can read it.
+The Edge Function can front either provider — `GEMINI_API_KEY` set means Gemini, otherwise
+`ANTHROPIC_API_KEY`. On Gemini's **unpaid** tier, Google's terms say plainly:
 
-No encryption, no Android Keystore, no app lock.
+> Google uses the content you submit to the Services and any generated responses to provide,
+> improve, and develop Google products and services… human reviewers may read, annotate, and
+> process your API input and output.
 
-**The fix.** For the APK, store it through `@capacitor/preferences` backed by EncryptedSharedPreferences. For the web there's no genuinely safe answer — the sensible move is proxying through a Supabase Edge Function so the key never reaches the client.
+and: *"Do not submit sensitive, confidential, or personal information to the Unpaid Services."*
+
+What this app sends on every assistant message is exactly that: this month's income and spending
+totals, the budget, thesis percentage and chapter deadlines, open tasks, latest weight, today's
+training. A `baca_data` call adds transaction history with notes, daily journal entries, and
+supervisor meeting notes.
+
+Three fields were dropped because they identify without informing — the user's name, the thesis
+title, and the **supervisor's name** (someone else's data, who never agreed to any of this). The
+numbers stay, because they are the feature: an assistant that can't see the amounts can't answer
+"where did the money go".
+
+**This is a deliberate, informed trade** — free inference in exchange for the daily record being
+readable by Google and its reviewers. The paid tier of the same API carries the opposite terms
+(no training, brief retention only). Switching is one command: `supabase secrets set` on a billed
+key, no redeploy, no code change.
 
 ---
 
-## 6. [!] The rest timer dies when the app is backgrounded
+## 5b. The API key is in the clear unless you deploy the proxy
 
-The rest timer is a JavaScript `setInterval`. Turn the screen off or switch apps mid-way through a 3-minute rest — a normal thing to do in a gym — and Android freezes it. Come back and the number is wrong or stopped.
+There are two paths now, and which one you are on is shown in the assistant's settings.
 
-**The fix.** Schedule a local notification when the timer starts, and compute remaining time from a timestamp difference rather than from interval ticks. Small change, large real-world impact.
+**Through the Edge Function** (`supabase/functions/asisten`) the Anthropic key lives only in
+Supabase secrets. The app sends its own session token and nothing else; the key never reaches any
+device, on web or in the APK. This is the intended setup — see [SUPABASE.md](SUPABASE.md).
+
+**On a local key**, which is what you get before deploying the function or without cloud sync at
+all, the key sits in `localStorage` as plain text. Inside the APK that storage is app-private and
+reasonably safe from other apps. On the web, anyone who can open devtools on that device can read
+it. No encryption, no Android Keystore, no app lock.
+
+The app prefers the function and only falls back for the current session, so the exposure ends the
+moment the function is deployed. But nothing forces the move, and a device that never signs in to
+Supabase has no other option.
+
+---
+
+## 6. The rest timer survives a dark screen now
+
+It holds the end timestamp in `localStorage` and recomputes the remaining seconds from the clock on
+every draw, so a throttled or dead `setInterval` no longer corrupts it. A local notification is
+scheduled for the end time, so the buzz arrives even if the process was killed, and reopening the
+session resumes a rest that is still running instead of resetting it.
+
+**What is still true.** On the web there is no notification when the tab is backgrounded — only the
+recomputed display when you come back. And the end-of-rest vibration only fires if the app is alive;
+otherwise you get the notification instead.
 
 ---
 
@@ -212,11 +267,37 @@ Low impact — it just makes the data bigger than it needs to be.
 
 ---
 
-## 18. Smaller things
+## 18. Notification text can be a day stale
+
+Morning, evening and agenda reminders are composed from live state — routines left, today's first
+agenda item, whether any spending was logged — but composed **at schedule time**, not at fire time.
+Android has no hook to rewrite a pending notification's body.
+
+`Notif.apply()` therefore reruns whenever the app moves to the background (at most hourly), which
+means the text is as fresh as the last time you put the phone down. Leave the app closed for a full
+day and the numbers it quotes will be yesterday's.
+
+---
+
+## 19. A notification reply needs the app to wake up
+
+Replying to a notification is real two-way control — you type from the lock screen and it lands as a
+transaction, a glass of water, or a weight. But the reply is delivered through Capacitor's
+`localNotificationActionPerformed`, which means Android starts or resumes the app to hand it over.
+It is much faster than opening the app and navigating, and it works from the lock screen, but it is
+not a background write.
+
+The quick parser handles money, water and weight. Anything it does not recognise is appended to
+today's note rather than dropped, so no reply is ever lost silently — but it is also not understood.
+Sending unrecognised replies to the assistant would need a network round trip and the API key, which
+is exactly what a lock-screen reply should not depend on.
+
+---
+
+## 20. Smaller things
 
 - The bundle isn't minified. 246 KB could be roughly 80 KB. Irrelevant inside the APK; slightly relevant on the web over a slow connection.
 - No service worker on the web build, so the PWA needs a connection for the first load each time the browser cache clears.
-- Notification text is static. "Check off your morning routine" fires even if everything was already done last night.
 - The quick-add menu shows the same options on every screen except training sessions.
 - Transaction categories aren't user-editable; changing them means changing code.
 - No search. Finding a specific transaction from six months ago means scrolling.

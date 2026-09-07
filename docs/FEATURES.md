@@ -12,6 +12,8 @@ A one-screen summary of today.
 - **Streak** — consecutive days with at least 60% of routines done
 - **Quick-log buttons** — expense, income, task, idea, weight
 - **Task alert** — overdue count and due-today count, linking straight to the list
+- **Today's agenda** — everything planned for today in one list: manual entries, the training sessions already on the weekly schedule, and tasks due today. The block covering the current time is marked *sekarang*; past ones dim.
+- **Agenda reminders** — each entry can fire a notification 5 to 60 minutes before it starts, once, daily, or on chosen weekdays.
 - **This month's cash flow** — net, in, out, and a budget bar that changes color at 80% and 100%
 - **Four KPI cards** — thesis, work hours over 7 days, latest weight, water today; all tappable
 - **7-day routine bar chart**
@@ -29,6 +31,7 @@ A full day, waking to sleeping. Arrows at the top right move between days.
 - **Routine editor** — add, rename, regroup, delete
 - **Timeline blocks** — time ranges with a category (11 options) and detail; a 24-hour strip sits above, and gaps between blocks are marked and tappable to fill
 - **Time breakdown by category** — total hours and percentage, largest first
+- **Plan vs. actual** — planned minutes per category against the minutes actually logged in the timeline. The plan line sits at a fixed position on every row, so a short bar means under and a long one means it ate more than planned. A category you never planned shows dimmed and labelled *di luar rencana*.
 - **Mood** and **energy**, five levels each
 - **Free note** that saves as you type
 - **Today's summary** — total spend, glasses of water, calories, tasks completed, hours worked
@@ -129,7 +132,7 @@ The star button above the add button.
 - **Write in plain language** — "tadi jajan nasi goreng 25rb terus udah olahraga" records the expense and ticks the workout routine in one go
 - **Every action is shown** as a green checked line, so you can catch anything filed wrong
 - **Answers questions about your own data** — "where am I overspending this month?", "what's my average sleep?"
-- **19 tools**: transactions, tasks, work hours, ideas, timeline blocks, routines, sleep times, weight, workouts, intake, thesis chapters, advisor notes, targets, training schedule, training sessions, and two read tools
+- **22 tools**: transactions, tasks, work hours, ideas, timeline blocks, agenda entries, routines, sleep times, weight, workouts, intake, thesis chapters, advisor notes, targets, training schedule, training sessions, and three read tools
 - **Training advice** that reads the program, history, logged weights, and shortfall notes
 - **Model chosen automatically** from what's available on the account, changeable manually
 - **Human-readable error messages** for a bad key, exhausted credit, a missing model, and network trouble

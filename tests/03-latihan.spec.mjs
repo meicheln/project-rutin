@@ -101,8 +101,38 @@ export async function jalan(t) {
   t.ok(timer.tampil, 'bar istirahat muncul');
   t.ok(timer.padding, 'isi layar dikasih ruang biar nggak ketutupan bar');
   t.ok(/^2:2[0-9]$/.test(timer.teks), `timer mundur dari 2:30 (sekarang ${timer.teks})`);
+  t.ok(await page.evaluate(() => { const r = LS.get('rutin.ist', null); return !!(r && r.akhir > Date.now()); }),
+    'waktu selesai istirahat disimpan, bukan cuma dihitung di memori');
+
+  // timer harus selamat waktu layar mati — yang dipegang jam selesainya, bukan jumlah tik
+  const lanjut = await page.evaluate(async () => {
+    clearInterval(timerIst);                       // tiru setInterval yang direm browser pas layar mati
+    const det = (LS.get('rutin.ist', null) || {}).det || 150;
+    stopIstirahat();                               // bar ditutup, kayak sesi ditutup atau app dibunuh
+    LS.set('rutin.ist', { akhir: Date.now() + 42000, det });   // tapi jam selesainya masih tersimpan
+    pulihkanIstirahat();                           // buka sesinya lagi
+    await new Promise(x => setTimeout(x, 400));
+    return { tampil: document.getElementById('istBar').classList.contains('on'),
+             teks: document.getElementById('istWaktu').textContent };
+  });
+  t.ok(lanjut.tampil, 'istirahat yang belum abis dilanjutin waktu sesi dibuka lagi');
+  t.ok(/^0:4[012]$/.test(lanjut.teks), `sisa waktu diitung ulang dari jam, bukan dari tik (${lanjut.teks})`);
+
+  const abis = await page.evaluate(async () => {
+    stopIstirahat();
+    LS.set('rutin.ist', { akhir: Date.now() - 1000, det: 150 });   // istirahat yang udah lewat
+    pulihkanIstirahat();
+    await new Promise(x => setTimeout(x, 200));
+    return { tampil: document.getElementById('istBar').classList.contains('on'), sisa: LS.get('rutin.ist', null) };
+  });
+  t.ok(!abis.tampil, 'istirahat yang udah lewat nggak dibuka lagi');
+  t.ok(!abis.sisa, 'sisa timer basi dibersihin');
+
+  await page.evaluate(() => { mulaiIstirahat('2,5 mnt'); });
+  await page.waitForTimeout(300);
   await page.click('#istLewati'); await page.waitForTimeout(350);
   t.ok(!await page.evaluate(() => document.getElementById('istBar').classList.contains('on')), 'tombol lewati nutup timer');
+  t.ok(!await page.evaluate(() => LS.get('rutin.ist', null)), 'lewati juga ngebuang waktu selesai yang tersimpan');
 
   // ---------- selesaikan sesi ----------
   await page.evaluate(() => {

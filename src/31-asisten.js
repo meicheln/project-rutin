@@ -7,30 +7,76 @@ const AI = {
   cfg: LS.get('rutin.ai', { key:'', model:'' }),
   raw: [],                       // riwayat mentah buat API
   busy: false,
+  mundur: false,                 // Edge Function belum siap — cuma buat sesi ini, bukan disimpan
   save(){ LS.set('rutin.ai', this.cfg); },
-  siap(){ return !!(this.cfg.key && this.cfg.model); }
+  /* lewat server kalau udah masuk Supabase dan pengguna nggak sengaja milih kunci lokal */
+  lewatServer(){ return !!(Cloud.ready && !this.mundur && !this.cfg.paksaLokal); },
+  siap(){ return !!this.cfg.model && (this.cfg.key || this.lewatServer()); }
 };
 
-/* ---------- transport (native lewat CapacitorHttp biar lolos CORS) ---------- */
-async function aiReq(method, path, body){
-  const url = 'https://api.anthropic.com' + path;
-  const headers = {
-    'x-api-key': AI.cfg.key,
-    'anthropic-version': '2023-06-01',
-    'content-type': 'application/json',
-    'anthropic-dangerous-direct-browser-access': 'true'
-  };
+/* ---------- transport ----------
+   Dua jalur, urutannya sengaja:
+     1. lewat Edge Function kalau udah masuk Supabase — kuncinya nggak pernah nyentuh HP
+     2. kunci lokal, buat yang belum nyambung cloud atau belum sempat deploy fungsinya
+   Jalur 2 nyimpen kunci apa adanya di localStorage (LIMITATIONS §5), makanya
+   jalur 1 selalu dicoba duluan dan jadi pilihan yang dipajang di pengaturan. */
+async function kirimHttp(url, method, headers, body){
   const http = Native.on ? Native.p('CapacitorHttp') : null;
   if (http){
     const r = await http.request({ url, method, headers, data: body, connectTimeout:30000, readTimeout:120000 });
     const d = typeof r.data === 'string' ? JSON.parse(r.data || '{}') : r.data;
-    if (r.status >= 400) throw new Error((d && d.error && d.error.message) || ('HTTP ' + r.status));
+    if (r.status >= 400){
+      const e = new Error((d && d.error && d.error.message) || ('HTTP ' + r.status)); e.status = r.status; throw e;
+    }
     return d;
   }
   const r = await fetch(url, { method, headers, body: body ? JSON.stringify(body) : undefined });
   const d = await r.json().catch(()=>({}));
-  if (!r.ok) throw new Error((d.error && d.error.message) || ('HTTP ' + r.status));
+  if (!r.ok){
+    const e = new Error((d.error && d.error.message) || ('HTTP ' + r.status)); e.status = r.status; throw e;
+  }
   return d;
+}
+
+/* jalur 1: aplikasi cuma bawa token sesinya sendiri, kuncinya ada di server */
+async function aiReqServer(method, path, body){
+  const sb = await Cloud.client();
+  if (!sb) throw new Error('Supabase belum diatur.');
+  const { data } = await sb.auth.getSession();
+  const tok = data && data.session && data.session.access_token;
+  if (!tok) throw new Error('Sesi Supabase nggak ada. Masuk dulu.');
+  return kirimHttp(
+    Cloud.cfg.url.replace(/\/+$/, '') + '/functions/v1/asisten',
+    'POST',
+    { Authorization: 'Bearer ' + tok, 'content-type': 'application/json' },
+    { path, method, body }
+  );
+}
+
+/* jalur 2: langsung ke Anthropic pakai kunci yang disimpan di HP */
+function aiReqLangsung(method, path, body){
+  if (!AI.cfg.key) throw new Error('Kunci API belum diisi.');
+  return kirimHttp('https://api.anthropic.com' + path, method, {
+    'x-api-key': AI.cfg.key,
+    'anthropic-version': '2023-06-01',
+    'content-type': 'application/json',
+    'anthropic-dangerous-direct-browser-access': 'true'
+  }, body);
+}
+
+async function aiReq(method, path, body){
+  if (AI.lewatServer()){
+    try{ return await aiReqServer(method, path, body); }
+    catch(e){
+      // 501 = kunci belum dipasang di server, 404 = fungsinya belum di-deploy.
+      // Mundur ke kunci lokal cuma buat sesi ini — begitu di-deploy, langsung kepakai lagi.
+      const belumSiap = (e.status === 501 || e.status === 404 || !e.status);
+      if (!belumSiap || !AI.cfg.key) throw e;
+      AI.mundur = true;
+      console.warn('Edge Function belum siap, mundur ke kunci lokal:', e.message);
+    }
+  }
+  return aiReqLangsung(method, path, body);
 }
 
 /* ---------- alat yang bisa dipakai asisten ---------- */
@@ -139,6 +185,25 @@ const AI_TOOLS = [
       sesi:{type:'array', items:{type:'string'}, description:'Daftar id sesi buat hari itu. Array kosong = hari libur.'}
     }, required:['hari','sesi'] } },
 
+  { name:'tambah_agenda', description:'Tambah rencana ke agenda. Ini rencana ke depan, beda sama catat_blok_waktu yang nyatet apa yang udah kejadian.',
+    input_schema:{ type:'object', properties:{
+      judul:{type:'string'}, mulai:{type:'string', description:'HH:MM'}, selesai:{type:'string', description:'HH:MM'},
+      kategori:{type:'string', enum:KAT_ACT},
+      ulang:{type:'string', enum:['sekali','harian','mingguan'], description:'Bawaannya sekali.'},
+      hari:{type:'array', items:{type:'number'}, description:'0=Minggu sampai 6=Sabtu. Cuma dipakai kalau ulang=mingguan.'},
+      tanggal:{type:'string', description:'YYYY-MM-DD, cuma buat ulang=sekali. Kosong = hari ini.'},
+      ingat:{type:'number', description:'Berapa menit sebelum mulai mau diingetin notifikasi. 0 atau kosong = nggak usah.'}
+    }, required:['judul','mulai','selesai','kategori'] } },
+
+  { name:'baca_agenda', description:'Baca agenda satu hari sekaligus perbandingan rencana vs waktu yang beneran kecatat.',
+    input_schema:{ type:'object', properties:{ tanggal:{type:'string', description:'YYYY-MM-DD. Kosong = hari ini.'} } } },
+
+  { name:'geser_agenda', description:'Geser jam atau hapus satu agenda. Cocokkan dari judulnya.',
+    input_schema:{ type:'object', properties:{
+      judul:{type:'string'}, mulai:{type:'string', description:'HH:MM'}, selesai:{type:'string', description:'HH:MM'},
+      hapus:{type:'boolean'}
+    }, required:['judul'] } },
+
   { name:'baca_data', description:'Baca data detail dari aplikasi buat menjawab pertanyaan atau bikin analisis.',
     input_schema:{ type:'object', properties:{
       bagian:{type:'string', enum:['uang','harian','skripsi','kerja','badan','ide','semua']},
@@ -241,6 +306,42 @@ const AI_RUN = {
     S.skripsi.bimbingan.push({ id:uid(), d:tgOr(a.tanggal), catatan:a.catatan.trim(), aksi:(a.aksi||'').trim(), selesai:false });
     return `Catatan bimbingan ${tgOr(a.tanggal)} tersimpan.`;
   },
+  tambah_agenda(a){
+    const u = ['sekali','harian','mingguan'].includes(a.ulang) ? a.ulang : 'sekali';
+    const hari = (a.hari||[]).map(Number).filter(n=>n>=0 && n<=6);
+    if (u === 'mingguan' && !hari.length) return 'Buat agenda mingguan, sebutin harinya (0=Minggu sampai 6=Sabtu).';
+    const o = { id:uid(), judul:a.judul.trim(), kat: KAT_ACT.includes(a.kategori)?a.kategori:'lainact',
+                mulai:a.mulai, selesai:a.selesai, ulang:u, hari: u==='mingguan'?hari:[],
+                tgl: u==='sekali'?tgOr(a.tanggal):'', ingat: Math.max(0, Math.round(+a.ingat||0)),
+                sumber:'manual', oleh:null };
+    S.agenda.push(o);
+    try{ Notif.apply(); }catch(e){}
+    const kapan = u==='harian' ? 'tiap hari' : u==='mingguan' ? 'tiap '+hari.map(w=>HARI[w]).join(', ') : o.tgl;
+    return `Agenda "${o.judul}" ${o.mulai}–${o.selesai} (${actOf(o.kat).n}) ditaruh ${kapan}${o.ingat?', diingetin '+o.ingat+' menit sebelumnya':''}.`;
+  },
+  baca_agenda(a){
+    const d = tgOr(a.tanggal);
+    return JSON.stringify({
+      tanggal: d,
+      agenda: agendaHari(d).map(x => ({ judul:x.judul, kategori:actOf(x.kat).n,
+        jam: x.mulai ? x.mulai+'–'+x.selesai : null, menit:menitAgenda(x), sumber:x.sumber||'manual' })),
+      rencana_vs_kejadian: rencanaVsAktual(d).map(r =>
+        ({ kegiatan:actOf(r.kat).n, rencana_menit:r.plan, kecatat_menit:r.real })),
+      catatan: 'kecatat_menit datang dari blok waktu di linimasa. 0 berarti belum dicatat, belum tentu belum dikerjain.'
+    });
+  },
+  geser_agenda(a){
+    const x = cocok(S.agenda, a.judul, 'judul');
+    if (!x) return S.agenda.length
+      ? `Nggak nemu agenda "${a.judul}". Yang ada: ${S.agenda.map(v=>v.judul).join(', ')}.`
+      : 'Belum ada agenda sama sekali.';
+    if (a.hapus){ S.agenda = S.agenda.filter(v=>v.id!==x.id); try{ Notif.apply(); }catch(e){}
+      return `Agenda "${x.judul}" dihapus.`; }
+    if (a.mulai) x.mulai = a.mulai;
+    if (a.selesai) x.selesai = a.selesai;
+    try{ Notif.apply(); }catch(e){}
+    return `Agenda "${x.judul}" sekarang ${x.mulai}–${x.selesai}.`;
+  },
   tambah_rutinitas(a){
     S.routines.push({ id:uid(), n:a.nama.trim(), tag:a.kelompok||'pagi' });
     return `Rutinitas "${a.nama}" ditambah ke kelompok ${a.kelompok||'pagi'}. Sekarang ada ${S.routines.length} item.`;
@@ -329,7 +430,9 @@ const AI_RUN = {
           blok:(dayRO(d).blocks||[]).map(x=>`${x.s}-${x.e} ${actOf(x.c).n}${x.t?': '+x.t:''}`) })) };
     }
     if (b==='skripsi' || b==='semua'){
-      out.skripsi = { judul:S.skripsi.judul, dosen:S.skripsi.dosen, target_sidang:S.skripsi.deadline,
+      // judul & nama dosen nggak dikirim. Judul nggak bikin saran jadi lebih bagus,
+      // dan nama dosen itu data orang lain yang nggak pernah ikut setuju.
+      out.skripsi = { target_sidang:S.skripsi.deadline,
         persen_total:Math.round(babPct()*100),
         bab:S.skripsi.bab.map(x=>({nama:x.n, persen:x.p, status:BAB_ST[x.st].n, tenggat:x.dl})),
         bimbingan:S.skripsi.bimbingan.map(x=>({tanggal:x.d, catatan:x.catatan, aksi:x.aksi})) };
@@ -358,7 +461,7 @@ function aiSnapshot(){
   const d = today(), m = d.slice(0,7), tx = txOfMonth(m);
   return JSON.stringify({
     hari_ini: d, nama_hari: HARI[fromD(d).getDay()],
-    pengguna: S.profile.nama || null,
+    // nama sengaja nggak dikirim: nol gunanya buat analisis, dan beranda udah nyapa sendiri
     rutinitas_hari_ini: `${routineDone(d)}/${S.routines.length}`,
     daftar_rutinitas: S.routines.map(r=>r.n),
     runtutan_hari: streak(),
@@ -369,6 +472,7 @@ function aiSnapshot(){
     berat_terakhir: lastWeight() ? lastWeight().kg : null,
     ide_aktif: S.ide.filter(i=>i.st!=='tayang').length,
     latihan_hari_ini: sesiHari(d).map(sid => PROGRAM[sid] ? PROGRAM[sid].n : sid),
+    agenda_hari_ini: agendaHari(d).map(a => `${a.mulai?a.mulai+'–'+a.selesai:'tanpa jam'} ${a.judul}`),
     kontak_lompatan_minggu_ini: Math.round(kontakMinggu()) + '/' + KONTAK_CAP,
     kategori_pengeluaran: KAT_OUT, kategori_pemasukan: KAT_IN, kategori_kegiatan: KAT_ACT
   });
@@ -386,6 +490,7 @@ Aturan:
 - Tanggal relatif: hitung dari hari ini. "kemarin", "senin lalu", "besok" — ubah jadi YYYY-MM-DD.
 - Kalau info wajibnya kurang dan nggak bisa ditebak masuk akal, tanya satu pertanyaan pendek. Kalau bisa ditebak, tebak aja dan sebutkan tebakanmu.
 - Buat pertanyaan analisis ("bulan ini boros di mana?", "gimana progres skripsi gua?"), pakai baca_data dulu baru jawab dengan angka konkret.
+- Bedain rencana sama catatan: "besok jam 9 ada bimbingan" itu tambah_agenda, "tadi pagi 2 jam ngerjain BAB III" itu catat_blok_waktu. Kalau ditanya soal bocornya waktu, panggil baca_agenda dulu.
 - Setelah nyatat, konfirmasi dalam satu kalimat. Jangan ngulang seluruh isi datanya.
 - Jangan bikin janji soal notifikasi, backup, atau hal di luar alat yang kamu punya.
 
@@ -419,34 +524,63 @@ function paintAI(){
       <div class="aiSetup">
         <div class="aiOrb"></div>
         <h3>Asisten belum nyala</h3>
-        <p>Sambungkan kunci API Anthropic punya lo sendiri. Kuncinya disimpan cuma di HP ini, nggak dikirim ke mana-mana selain ke Anthropic langsung.</p>
+        <p>${Cloud.ready
+          ? 'Kuncinya ditaruh di Edge Function proyek Supabase lo — nggak pernah nyampe HP ini.'
+          : 'Sambungkan kunci API Anthropic punya lo sendiri. Kuncinya disimpan cuma di HP ini, nggak dikirim ke mana-mana selain ke Anthropic langsung.'}</p>
         <div class="stack" style="text-align:left;margin-top:18px">
-          ${F.text('aiKey','Kunci API (sk-ant-…)', AI.cfg.key)}
-          <button class="btn block" id="aiConnect">Sambungkan</button>
+          ${Cloud.ready ? `
+            <button class="btn block" id="aiConnectSrv">Nyalakan lewat server</button>
+            <details class="acc"><summary>Belum nyiapin fungsinya?</summary>
+              <div class="body">Sekali doang, dari komputer:
+                <pre class="sql">supabase functions deploy asisten
+supabase secrets set ANTHROPIC_API_KEY=sk-ant-...</pre>
+                Langkah lengkapnya ada di <b>docs/SUPABASE.md</b>.</div></details>
+            <details class="acc"><summary>Atau simpan kunci di HP ini aja</summary>
+              <div class="body">Lebih gampang, tapi kuncinya kesimpan apa adanya di HP.
+                <div class="stack" style="margin-top:12px">
+                  ${F.text('aiKey','Kunci API (sk-ant-…)', AI.cfg.key)}
+                  <button class="btn ghost block" id="aiConnect">Pakai kunci ini</button>
+                </div></div></details>
+          ` : `
+            ${F.text('aiKey','Kunci API (sk-ant-…)', AI.cfg.key)}
+            <button class="btn block" id="aiConnect">Sambungkan</button>
+          `}
           <details class="acc"><summary>Cara dapetin kuncinya</summary>
-            <div class="body">Buka <b>console.anthropic.com</b> → daftar → isi saldo (minimal $5) → menu <b>API Keys</b> → <b>Create Key</b> → salin, tempel di atas.
+            <div class="body">Buka <b>console.anthropic.com</b> → daftar → isi saldo (minimal $5) → menu <b>API Keys</b> → <b>Create Key</b> → salin.
             <br><br>Pemakaian dibayar per pesan dan ditagih ke akun lo sendiri. Ngobrol ringan biasanya jatuhnya sangat murah, tapi ini tetap uang lo — pantau di halaman Usage.</div></details>
         </div>
       </div>`;
-    const b = $('#aiConnect');
-    b.onclick = async ()=>{
-      const k = val('aiKey').trim();
-      if (!k.startsWith('sk-ant-')){ toast('Kuncinya harus diawali sk-ant-'); return; }
+    /* dua tombol, satu jalan: ambil daftar model, kalau dapet berarti jalurnya hidup */
+    const nyalakan = async (b, label, siapkan, batalkan) => {
       b.disabled = true; b.textContent = 'Ngecek…';
-      AI.cfg.key = k;
+      siapkan();
       try{
         const r = await aiReq('GET', '/v1/models?limit=100');
         const ids = (r.data||[]).map(m=>m.id);
         if (!ids.length) throw new Error('Nggak ada model yang tersedia di akun ini.');
-        AI.cfg.model = ids.find(i=>/sonnet/i.test(i)) || ids[0];
+        AI.cfg.model = ids.find(i=>/sonnet|flash/i.test(i)) || ids[0];
         AI.cfg.models = ids;
         AI.save(); toast('Asisten nyala'); paintAI();
       }catch(e){
-        AI.cfg.key = ''; AI.save();
+        batalkan();
         log.querySelector('.aiSetup').insertAdjacentHTML('beforeend',
           `<div class="note" style="color:var(--c-bad);margin-top:12px">${esc(e.message)}</div>`);
-        b.disabled = false; b.textContent = 'Sambungkan';
+        b.disabled = false; b.textContent = label;
       }
+    };
+
+    const bs = $('#aiConnectSrv');
+    if (bs) bs.onclick = ()=> nyalakan(bs, 'Nyalakan lewat server',
+      ()=>{ AI.mundur = false; AI.cfg.paksaLokal = false; },
+      ()=>{});
+
+    const b = $('#aiConnect');
+    if (b) b.onclick = ()=>{
+      const k = val('aiKey').trim();
+      if (!k.startsWith('sk-ant-')){ toast('Kuncinya harus diawali sk-ant-'); return; }
+      nyalakan(b, Cloud.ready ? 'Pakai kunci ini' : 'Sambungkan',
+        ()=>{ AI.cfg.key = k; AI.cfg.paksaLokal = true; },
+        ()=>{ AI.cfg.key = ''; AI.cfg.paksaLokal = false; AI.save(); });
     };
     return;
   }
@@ -488,6 +622,18 @@ function aiAction(nama, hasil){
   el.innerHTML = `<span class="tick">✓</span><span>${esc(hasil)}</span>`;
   log.appendChild(el); log.scrollTop = log.scrollHeight;
 }
+/* satu baris urungkan per giliran, bukan per alat — snapshot-nya juga per giliran */
+function aiUrung(){
+  const log = $('#aiLog');
+  const el = document.createElement('div');
+  el.className = 'aiAct urung';
+  el.innerHTML = `<span class="tick">↺</span><span class="grow">Salah catat?</span><button type="button">Urungkan</button>`;
+  el.querySelector('button').onclick = ()=>{
+    const l = Undo.balikin();
+    el.innerHTML = `<span class="tick">↺</span><span>${l === null ? 'Udah nggak bisa dibatalin.' : 'Dibatalin, data balik kayak sebelumnya.'}</span>`;
+  };
+  log.appendChild(el); log.scrollTop = log.scrollHeight;
+}
 function aiThinking(on){
   const log = $('#aiLog');
   let t = $('#aiDots');
@@ -523,14 +669,19 @@ async function aiSend(text){
       if (!pakai.length) break;
 
       const hasil = [];
+      // asisten nulis tanpa lo lihat formnya. Salah baca "dua juta" jadi "dua ribu"
+      // sebelumnya mendarat tanpa rem — sekarang satu batch bisa diurungkan.
+      const nulis = pakai.some(u => AI_RUN[u.name] && !u.name.startsWith('baca_'));
+      if (nulis) Undo.simpan('yang barusan dicatat asisten');
       for (const u of pakai){
         let out;
         try{ out = AI_RUN[u.name] ? String(AI_RUN[u.name](u.input||{})) : 'Alat tidak dikenal.'; }
         catch(e){ out = 'Gagal: ' + e.message; }
-        if (u.name !== 'baca_data') aiAction(u.name, out);
+        if (!u.name.startsWith('baca_')) aiAction(u.name, out);   // alat baca balikin JSON, jangan ditumpahin ke chat
         hasil.push({ type:'tool_result', tool_use_id:u.id, content: out });
       }
       commit(false); Store.flush();
+      if (nulis) aiUrung();
       AI.raw.push({ role:'user', content: hasil });
       aiThinking(true);
     }
@@ -562,21 +713,41 @@ document.addEventListener('click', ev=>{
 
 function sheetAI(){
   const models = AI.cfg.models || (AI.cfg.model ? [AI.cfg.model] : []);
-  form('Pengaturan asisten', 'Kunci disimpan di HP ini aja',
-    F.text('aiK','Kunci API Anthropic', AI.cfg.key, 'sk-ant-…') +
+  const srv = AI.lewatServer();
+  const jalur = srv
+    ? `<div class="note" style="color:var(--c-ok)">Lewat Edge Function — kunci Anthropic nggak ada di HP ini.</div>`
+    : AI.mundur
+      ? `<div class="note" style="color:var(--c-warn)">Edge Function belum kejawab, lagi mundur ke kunci di HP. Deploy fungsinya biar balik aman.</div>`
+      : `<div class="note" style="color:var(--c-warn)">Kunci kesimpan apa adanya di HP ini. Sambungkan Supabase, deploy fungsi <b>asisten</b>, biar kuncinya pindah ke server.</div>`;
+  form('Pengaturan asisten', srv ? 'Kunci ada di server, bukan di HP' : 'Kunci disimpan di HP ini',
+    jalur +
+    (srv ? '' : F.text('aiK','Kunci API Anthropic', AI.cfg.key, 'sk-ant-…')) +
     (models.length ? F.sel('aiM','Model', models.map(m=>[m,m]), AI.cfg.model)
                    : F.text('aiM','Model', AI.cfg.model, 'isi kunci dulu, nanti kelist')) +
     `<button class="btn ghost block sm" id="aiRefresh">Muat ulang daftar model</button>
+     ${Cloud.ready && !srv ? `<button class="btn ghost block sm" id="aiKeSrv">Pindah ke server</button>` : ''}
      <div class="note">Biaya pemakaian ditagih ke akun Anthropic lo sendiri. Pantau di console.anthropic.com bagian Usage.</div>`,
-    ()=>{ AI.cfg.key = val('aiK').trim(); AI.cfg.model = val('aiM').trim(); AI.save(); toast('Asisten diperbarui'); },
-    AI.cfg.key ? ()=>{ AI.cfg = {key:'',model:''}; AI.raw=[]; AI.save(); toast('Asisten diputus'); } : null);
+    ()=>{ if (!srv) AI.cfg.key = val('aiK').trim(); AI.cfg.model = val('aiM').trim(); AI.save(); toast('Asisten diperbarui'); },
+    (AI.cfg.key || srv) ? ()=>{ AI.cfg = {key:'',model:''}; AI.raw=[]; AI.mundur=false; AI.save(); toast('Asisten diputus'); } : null);
+  const ks = $('#aiKeSrv');
+  if (ks) ks.onclick = async ()=>{
+    ks.textContent = 'Ngecek…'; AI.mundur = false; AI.cfg.paksaLokal = false;
+    try{
+      await aiReqServer('GET','/v1/models?limit=1');
+      AI.cfg.key = ''; AI.save(); closeSheet(); sheetAI();
+      toast('Sekarang lewat server. Kunci dihapus dari HP ini.');
+    }catch(e){
+      AI.cfg.paksaLokal = true; AI.save();
+      ks.textContent = 'Belum bisa — ' + (e.status === 501 ? 'kuncinya belum dipasang di server' : e.status === 404 ? 'fungsinya belum di-deploy' : e.message);
+    }
+  };
   const rb = $('#aiRefresh');
   if (rb) rb.onclick = async ()=>{
     AI.cfg.key = val('aiK').trim(); rb.textContent = 'Ngambil…';
     try{
       const r = await aiReq('GET','/v1/models?limit=100');
       AI.cfg.models = (r.data||[]).map(m=>m.id);
-      if (!AI.cfg.model) AI.cfg.model = AI.cfg.models.find(i=>/sonnet/i.test(i)) || AI.cfg.models[0];
+      if (!AI.cfg.model) AI.cfg.model = AI.cfg.models.find(i=>/sonnet|flash/i.test(i)) || AI.cfg.models[0];
       AI.save(); closeSheet(); sheetAI(); toast(`${AI.cfg.models.length} model ketemu`);
     }catch(e){ rb.textContent = 'Gagal — cek kuncinya'; }
   };

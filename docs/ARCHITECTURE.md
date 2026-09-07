@@ -39,8 +39,8 @@ Store.load()          if IndexedDB is newer than localStorage, take it
 Store.flush()         bring both layers back in step
 LT()                  initialise the training data shape
 go('home')            paint the first screen
-Native.init()         status bar, splash, back button, app lifecycle
-Notif.apply()         reschedule all reminders
+Native.init()         status bar, splash, back button, lifecycle, notification actions
+Notif.apply()         reschedule all reminders, composing their text from today's state
   ↓
 Cloud.configured()?
   yes → Cloud.restore() → session alive? → close gate, syncDown()
@@ -75,6 +75,12 @@ S = {
     }
   },
 
+  agenda:   [ {id, judul, kat, mulai, selesai,   // the plan; blocks above are the record
+               ulang:'sekali'|'harian'|'mingguan',
+               hari:[0..6], tgl,                 // hari for mingguan, tgl for sekali
+               ingat,                            // minutes before mulai, 0 = no reminder
+               sumber, oleh} ],
+
   txns:     [ {id, d, type:'in'|'out', amt, cat, note} ],
   tasks:    [ {id, t, proj, prio, due, est, done, doneAt} ],
   workLogs: [ {id, d, jam, proj, note} ],
@@ -102,6 +108,15 @@ S = {
 }
 ```
 
+### Adding a field
+
+Add it to `seed()` and nothing else. `migrate()` copies any missing top-level key (and any missing
+`settings` key) from a fresh seed onto the loaded state, so old data gains the field with its default.
+
+It runs on boot **and** on every path that replaces `S` wholesale — the cloud pull, an IndexedDB load,
+and a restored backup file. Miss one of those and a device that syncs down an old row gets a state
+without the new key, and the first line of code that touches it throws.
+
 ### Why an object, not tables
 
 This is a single-user app. Forty-five days of full usage comes out around 300 KB of JSON. While it stays under a few megabytes, one object is far simpler: no joins, no schema migrations, backup is `JSON.stringify`, and sync is one row.
@@ -112,8 +127,13 @@ The ceiling is real and documented in [LIMITATIONS.md](LIMITATIONS.md) §2.
 
 - `LS.get('rutin.sb')` — Supabase URL and public key
 - `LS.get('rutin.ai')` — Anthropic API key and chosen model
+- `LS.get('rutin.ist')` — the running rest timer's end timestamp, so it survives the process dying
 
-Deliberately separate: both belong to the device, not the account. If they lived in `S`, the API key would sync to every other device — not what anyone wants.
+Deliberately separate: the first two belong to the device, not the account. If they lived in `S`, the API key would sync to every other device — not what anyone wants. The third is per-device by nature: a rest you started on your phone is not a rest on your laptop.
+
+### Undo
+
+`Undo` keeps up to five whole-`S` snapshots as strings — the same serialisation `commit()` already pays on every change, so it costs nothing new. It is deliberately **not** wired into every action; it backs the two paths that write without showing you a form first: an assistant turn, and a notification reply. Both call `tulisBisaUrung()`, which snapshots, performs the write, and offers *Urungkan*. Reasoning and what is still unguarded: [LIMITATIONS §4](LIMITATIONS.md).
 
 ---
 
@@ -261,14 +281,42 @@ otherwise              → exit the app
 
 ### Reminders
 
-Two groups, rescheduled whenever their settings change:
+Four groups, rescheduled whenever their settings change, when an agenda entry changes, and whenever
+the app moves to the background (at most hourly):
 
-- ids 101, 102 — morning and evening reminders
-- ids 210–216 — one per training day, naming that day's sessions
+| ids | what |
+|---|---|
+| 101, 102 | morning and evening |
+| 210–216 | one per training day, naming that day's sessions |
+| 250 | rest timer end — **never cancelled by `apply()`**, it lives outside this cycle |
+| 299 | the one-shot "Geser 15m" follow-up |
+| 300–491 | agenda entries: `300 + i×8`, one slot for once/daily plus seven weekday slots |
+
+Bodies are **composed from live state**, not hardcoded: routines left, today's first agenda item,
+whether spending was logged. Android cannot rewrite a pending notification, so they are composed at
+schedule time and can go stale — see [LIMITATIONS §18](LIMITATIONS.md).
 
 Android 14 can refuse exact alarms. The code tries `allowWhileIdle: true` first and falls back to ordinary scheduling rather than failing silently.
 
 A bug lived here: training-day reminders were gated behind the daily-reminder switch, so they were never scheduled if daily reminders were off. Now both groups are composed separately and sent together. Guarded by assertions in `05-native.spec.mjs`.
+
+An agenda reminder that lands before midnight (`00:20` minus an hour) walks its weekday back a day
+rather than emitting a negative hour. That off-by-one is the kind of thing nobody notices until a
+reminder fires on the wrong day, so it has its own assertion.
+
+### Replying to a notification
+
+`registerActionTypes` gives the daily and agenda reminders a text input plus *Geser 15m* and
+*Lewati*. `localNotificationActionPerformed` routes the reply into `parseCepat()` — a deliberately
+small local parser for money, water and weight that needs no network and no API key. Anything it
+does not recognise is appended to today's note rather than dropped.
+
+Two decisions worth keeping:
+
+- **Snooze does not touch the data.** It schedules a one-shot follow-up at id 299. Moving `mulai`
+  would shift a daily or weekly agenda entry permanently.
+- **Every reply goes through `tulisBisaUrung()`**, which snapshots `S` first and shows an *Urungkan*
+  toast. This is a write you never saw a form for; it needs a brake. Same for assistant turns.
 
 ---
 
@@ -279,18 +327,46 @@ A bug lived here: training-day reminders were gated behind the daily-reminder sw
 ```
 user types
   → AI.raw.push({role:'user'})
-  → POST /v1/messages { system: AI_SYS(), tools: AI_TOOLS, messages: AI.raw }
+  → aiReq('POST', '/v1/messages', { system: AI_SYS(), tools: AI_TOOLS, messages: AI.raw })
   → response contains tool_use?
        yes → run each tool locally → tool_result → send again (max 8 rounds)
        no  → show the text, done
   → commit()
 ```
 
+### Two transports
+
+`aiReq()` picks one, and the order matters:
+
+```
+signed in to Supabase?
+  yes → POST <project>/functions/v1/asisten
+          Authorization: Bearer <session token>      ← the only credential the device holds
+          body: { path, method, body }               ← the real request, wrapped
+        404 / 501 / network error, and a local key exists?
+          → AI.mundur = true for this session only, fall through
+        401?
+          → throw. An invalid session is a real error, not a reason to quietly use the local key.
+  no  → POST https://api.anthropic.com<path>
+          x-api-key: <key from localStorage>          ← LIMITATIONS §5
+```
+
+`AI.mundur` is deliberately **not** persisted: deploy the function later and the app returns to it on
+the next launch without anyone touching a setting. `Pindah ke server` in the settings sheet calls the
+function first and only deletes the on-device key once it answers.
+
+The function verifies the session itself with `auth.getUser()` rather than trusting Supabase's
+platform-level JWT gate — that gate accepts a project anon key, which is not a user.
+
 The 8-round cap stops the model from looping on tool calls forever.
+
+Any round that calls at least one **known writing** tool snapshots `S` first and appends an
+*Urungkan* row under its action lines, rolling back the whole round. An unknown tool name produces
+neither, so a hallucinated tool cannot bury a real undo under a useless one.
 
 ### Tools
 
-19 tools, all synchronous and touching `S` directly. Each returns one Indonesian sentence rather than JSON — that sentence becomes the `tool_result`, and is also shown to the user as a green checked line so a misfiled entry is visible.
+22 tools, all synchronous and touching `S` directly. Each returns one Indonesian sentence rather than JSON — that sentence becomes the `tool_result`, and is also shown to the user as a green checked line so a misfiled entry is visible. The exception is the `baca_*` read tools, which return JSON for the model and are not echoed to the user.
 
 ```
 catat_transaksi      tambah_tugas          selesaikan_tugas
@@ -299,7 +375,8 @@ centang_rutinitas    atur_jam_tidur        catat_berat
 catat_latihan        catat_asupan          ubah_bab_skripsi
 catat_bimbingan      tambah_rutinitas      atur_target
 baca_latihan         catat_sesi_latihan    ubah_jadwal_latihan
-baca_data
+baca_data             tambah_agenda         baca_agenda
+geser_agenda
 ```
 
 Name matching (tasks, routines, chapters) uses a tiered `cocok()`: exact → contains → contained-by. On a miss the tool returns the list of valid options, so the model can correct itself on the next round instead of giving up.

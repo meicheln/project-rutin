@@ -8,3 +8,6 @@ dist/
 *.jks
 .env
 local.properties
+
+# file kerja Supabase CLI, bukan bagian proyek
+supabase/.temp/
