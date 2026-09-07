@@ -75,8 +75,13 @@ jobs:
         env:
           B64: ${{ secrets.RUTIN_KEYSTORE_B64 }}
         run: |
-          echo "$B64" | base64 -d > ../rutin-android/android/rutin-release.keystore
+          # buang spasi/CR yang mungkin keikut waktu nempel dari Windows
+          printf %s "$B64" | tr -d '[:space:]' | base64 -d > ../rutin-android/android/rutin-release.keystore
           ls -l ../rutin-android/android/rutin-release.keystore
+          head -c2 ../rutin-android/android/rutin-release.keystore | xxd | grep -q '3082' || {
+            echo "::error::RUTIN_KEYSTORE_B64 bukan keystore yang sah — cek isinya, harusnya base64 dari dist/rutin-v2.keystore"
+            exit 1
+          }
 
       - name: Ikon & splash
         run: |
