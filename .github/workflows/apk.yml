@@ -53,8 +53,19 @@ jobs:
 
       - name: Android SDK
         run: |
-          yes | sdkmanager --licenses > /dev/null 2>&1 || true
-          sdkmanager "platforms;android-35" "build-tools;35.0.0" > /dev/null
+          # sdkmanager nggak ada di PATH runner-nya, cuma di dalam cmdline-tools
+          SDK="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}}"
+          SDKMGR=$(find "$SDK/cmdline-tools" -type f -name sdkmanager 2>/dev/null | sort | tail -1)
+          if [ -z "$SDKMGR" ]; then
+            echo "::error::sdkmanager nggak ketemu di $SDK — isi foldernya:"
+            ls -la "$SDK" || true
+            exit 1
+          fi
+          echo "pakai $SDKMGR"
+          yes | "$SDKMGR" --licenses > /dev/null 2>&1 || true
+          "$SDKMGR" "platforms;android-35" "build-tools;35.0.0" > /dev/null
+          echo "ANDROID_HOME=$SDK"     >> "$GITHUB_ENV"
+          echo "ANDROID_SDK_ROOT=$SDK" >> "$GITHUB_ENV"
 
       - run: npm ci
 
