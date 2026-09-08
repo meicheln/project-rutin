@@ -59,7 +59,9 @@ export function keGemini(body: any) {
     contents.push({ role: m.role === 'assistant' ? 'model' : 'user', parts });
   }
 
-  const out: any = { contents, generationConfig: { maxOutputTokens: body.max_tokens ?? 2048 } };
+  // Gemini 2.5 mikir dulu, dan mikirnya motong jatah keluaran yang sama. 2048
+  // sering habis kepakai mikir sampai nggak kebagian buat jawabannya.
+  const out: any = { contents, generationConfig: { maxOutputTokens: Math.max(body.max_tokens ?? 2048, 8192) } };
   if (body.system) out.systemInstruction = { parts: [{ text: String(body.system) }] };
   if (body.tools?.length) {
     out.tools = [{
@@ -131,14 +133,33 @@ export async function panggilGemini(jalur: string, metode: string, body: any, ku
   }
 
   const model = String(body?.model ?? 'gemini-2.5-flash');
+  const muatan = keGemini(body);
   const r = await fetch(`${GEMINI}/models/${encodeURIComponent(model)}:generateContent`, {
     method: 'POST',
     headers: kepala,
-    body: JSON.stringify(keGemini(body)),
+    body: JSON.stringify(muatan),
   });
   const d = await r.json();
   if (!r.ok) {
-    return { status: r.status, data: { error: { message: d?.error?.message ?? `HTTP ${r.status} dari Gemini.` } } };
+    // Model dan status ikut disebut. Tanpa ini, galat dari Gemini nyampe aplikasi
+    // tanpa konteks dan kelihatan kayak masalah lain.
+    const pesan = d?.error?.message ?? `HTTP ${r.status}`;
+    console.error('gemini tolak', r.status, model, pesan);
+    return { status: r.status, data: { error: {
+      message: `Gemini nolak (${r.status}, model ${model}): ${pesan}`,
+    } } };
   }
-  return { status: 200, data: dariGemini(d, model) };
+
+  const hasil = dariGemini(d, model);
+  // Model 2.5 itu mikir dulu sebelum jawab, dan mikirnya makan jatah keluaran.
+  // Kalau jatahnya keburu habis, parts-nya balik kosong — dan giliran kosong bikin
+  // putaran alat berhenti tanpa penjelasan. Lebih baik bilang apa adanya.
+  if (!hasil.content.length) {
+    const alasan = (d?.candidates?.[0]?.finishReason) ?? 'tanpa alasan';
+    console.error('gemini balik kosong', model, alasan, JSON.stringify(d?.usageMetadata ?? {}));
+    return { status: 502, data: { error: {
+      message: `Gemini balik kosong (${alasan}). Coba naikin batas keluaran atau ganti model.`,
+    } } };
+  }
+  return { status: 200, data: hasil };
 }

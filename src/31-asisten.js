@@ -688,11 +688,17 @@ async function aiSend(text){
   }catch(e){
     aiThinking(false);
     const m = String(e.message||e);
-    aiBubble('ai', /credit|balance|quota/i.test(m) ? 'Saldo API lo kayaknya habis. Cek di console.anthropic.com bagian Billing.'
-      : /authentication|invalid.*key|401/i.test(m) ? 'Kunci API-nya ditolak. Ganti di pengaturan asisten.'
-      : /not_found|model/i.test(m) ? 'Model yang dipilih nggak tersedia. Ganti modelnya di pengaturan asisten.'
-      : /rate/i.test(m) ? 'Kena batas kecepatan. Tunggu sebentar terus coba lagi.'
-      : 'Gagal nyambung: ' + m);
+    /* Polanya dulu kelewat longgar — /model/ doang kena ke error apa pun yang
+       kebetulan nyebut kata "model", jadi penyebab aslinya ketelen dan orang
+       disuruh ganti model padahal masalahnya di tempat lain. Sekarang tiap pola
+       harus spesifik, dan yang nggak kekenal ditampilin apa adanya. */
+    const ramah =
+        /credit|balance|billing|insufficient/i.test(m) ? 'Saldo API lo kayaknya habis. Cek di halaman billing penyedia lo.'
+      : /API key not valid|invalid.*api.*key|authentication_error|401/i.test(m) ? 'Kunci API-nya ditolak. Cek secret di Edge Function.'
+      : /is not found for API version|models\/[\w.-]+ is not found|NOT_FOUND/i.test(m) ? 'Model yang dipilih nggak ada di akun ini. Ganti modelnya di pengaturan asisten.'
+      : /rate limit|RESOURCE_EXHAUSTED|429/i.test(m) ? 'Kena batas kecepatan penyedia. Tunggu sebentar terus coba lagi.'
+      : null;
+    aiBubble('ai', ramah || ('Gagal: ' + m));
   }finally{
     aiThinking(false);
     AI.busy = false;
