@@ -370,11 +370,24 @@ const Cloud = {
     finally{ this.busy = false; }
   },
 
+  /* Pemasangan baru itu selalu punya updatedAt paling baru — dibikin seed() barusan.
+     Kalau cuma ngandelin perbandingan cap waktu, masuk akun di HP baru bakal
+     NGIRIM state kosong nimpa data cloud. Makanya state kosong nggak pernah menang. */
+  lokalKosong(){
+    return !(S.txns||[]).length
+        && !Object.keys(S.days||{}).length
+        && !(S.tasks||[]).length
+        && !(S.ide||[]).length
+        && !(S.workLogs||[]).length
+        && !((S.badan||{}).berat||[]).length;
+  },
+
   async syncDown(){
     try{
       setSync('sync');
       const remote = await this.pull();
-      if (remote && remote.data && remote.data.updatedAt && remote.data.updatedAt > (S.updatedAt||0)){
+      const adaIsiJauh = remote && remote.data && remote.data.v;
+      if (adaIsiJauh && (this.lokalKosong() || remote.data.updatedAt > (S.updatedAt||0))){
         S = remote.data; migrate();
         LS.set('rutin.state', S);
         setSync('ok'); render(); toast('Data terbaru ditarik dari cloud');

@@ -66,16 +66,87 @@ export async function jalan(t) {
   t.ok(cadangan.ukuranKB < 2048, `ukuran cadangan masih wajar (${cadangan.ukuranKB} KB untuk 45 hari)`);
 
   // ---------- aturan menang-mana waktu sinkron ----------
-  const sinkron = await page.evaluate(() => {
-    const lokalBaru = { v: 1, updatedAt: 2000, txns: [1, 2, 3] };
-    const cloudLama = { data: { v: 1, updatedAt: 1000, txns: [1] } };
-    const cloudBaru = { data: { v: 1, updatedAt: 3000, txns: [1, 2, 3, 4] } };
-    const pilih = (lokal, jauh) => (jauh && jauh.data && jauh.data.updatedAt > lokal.updatedAt) ? 'cloud' : 'lokal';
-    return { a: pilih(lokalBaru, cloudLama), b: pilih(lokalBaru, cloudBaru), c: pilih(lokalBaru, null) };
+  // Dites lewat Cloud.syncDown() beneran, bukan lewat salinan aturannya. Versi lama
+  // spec ini nulis ulang logikanya di dalam tes, jadi bug "pemasangan baru nimpa
+  // cloud" nggak pernah ketangkep — salinannya bener, kodenya yang nggak.
+  const sinkron = await page.evaluate(async () => {
+    const hasil = {};
+    const pasang = (jauh) => {
+      let dikirim = false;
+      Cloud.ready = true;
+      Cloud.pull = async () => jauh;
+      Cloud.push = async () => { dikirim = true; };
+      return () => dikirim;
+    };
+
+    // lokal ada isinya & lebih baru → lokal menang, cloud ditimpa
+    S = seed(); S.txns = [{ id: 'a', d: today(), type: 'out', amt: 1, cat: 'makan', note: '' }];
+    S.updatedAt = 5000;
+    let kirim = pasang({ data: { v: 1, updatedAt: 1000, txns: [] } });
+    await Cloud.syncDown();
+    hasil.lokalMenang = kirim() && S.txns.length === 1;
+
+    // cloud lebih baru → cloud menang
+    S = seed(); S.txns = [{ id: 'a', d: today(), type: 'out', amt: 1, cat: 'makan', note: '' }];
+    S.updatedAt = 1000;
+    pasang({ data: { v: 1, updatedAt: 9000, txns: [{ id: 'x' }, { id: 'y' }] } });
+    await Cloud.syncDown();
+    hasil.cloudMenang = S.txns.length === 2;
+
+    // pemasangan baru: updatedAt-nya paling baru (dibikin seed barusan) tapi kosong.
+    // Ini jebakannya — kalau cuma bandingin cap waktu, data cloud ketimpa kosong.
+    S = seed();
+    kirim = pasang({ data: { v: 1, updatedAt: 1, txns: [{ id: 'x' }, { id: 'y' }, { id: 'z' }] } });
+    hasil.dianggapKosong = Cloud.lokalKosong();
+    await Cloud.syncDown();
+    hasil.pasangBaruNarik = S.txns.length === 3;
+    hasil.pasangBaruTakNimpa = !kirim();
+
+    // cloud beneran kosong → lokal yang dikirim, bukan malah dihapus
+    S = seed(); S.txns = [{ id: 'a' }]; S.updatedAt = 5000;
+    kirim = pasang(null);
+    await Cloud.syncDown();
+    hasil.cloudKosongTetapKirim = kirim() && S.txns.length === 1;
+
+    Cloud.ready = false;
+    return hasil;
   });
-  t.eq(sinkron.a, 'lokal', 'lokal lebih baru → lokal yang menang');
-  t.eq(sinkron.b, 'cloud', 'cloud lebih baru → cloud yang menang');
-  t.eq(sinkron.c, 'lokal', 'cloud kosong → pakai lokal');
+  t.ok(sinkron.lokalMenang, 'lokal lebih baru → lokal yang menang');
+  t.ok(sinkron.cloudMenang, 'cloud lebih baru → cloud yang menang');
+  t.ok(sinkron.dianggapKosong, 'state hasil pemasangan baru kedeteksi kosong');
+  t.ok(sinkron.pasangBaruNarik, 'pasang baru narik data cloud walau cap waktunya lebih tua');
+  t.ok(sinkron.pasangBaruTakNimpa, 'pasang baru NGGAK ngirim state kosong nimpa data cloud');
+  t.ok(sinkron.cloudKosongTetapKirim, 'cloud kosong → lokal dikirim, bukan lokal dihapus');
+
+  // ---------- pemulihan cadangan ----------
+  const pulih = await page.evaluate(() => {
+    const asli = JSON.stringify(S);
+    const hasil = {};
+    hasil.bukanJson = pulihkanDari('{ ini bukan json');
+    hasil.jsonTapiBukanRutin = pulihkanDari('{"halo":1}');
+    hasil.bukanObjek = pulihkanDari('"cuma teks"');
+    hasil.utuh = JSON.stringify(S) === asli;   // yang gagal nggak boleh ngerusak data
+
+    const cadangan = JSON.parse(asli);
+    cadangan.txns = [{ id: 'p1', d: today(), type: 'out', amt: 7000, cat: 'makan', note: 'dari cadangan' }];
+    hasil.berhasil = pulihkanDari(JSON.stringify(cadangan));
+    hasil.masuk = S.txns.length === 1 && S.txns[0].note === 'dari cadangan';
+
+    // cadangan lama yang belum punya field baru harus tetap kepakai
+    const lawas = { v: 1, updatedAt: 1, profile: { nama: 'x', mulai: today() }, settings: {},
+                    routines: [], days: {}, txns: [], tasks: [], workLogs: [],
+                    skripsi: { bab: [], bimbingan: [] }, badan: { berat: [], latihan: [] }, ide: [] };
+    hasil.lawasKepakai = pulihkanDari(JSON.stringify(lawas));
+    hasil.lawasDapatAgenda = Array.isArray(S.agenda);
+    return hasil;
+  });
+  t.ok(!pulih.bukanJson, 'teks yang bukan JSON ditolak');
+  t.ok(!pulih.jsonTapiBukanRutin, 'JSON tanpa penanda versi ditolak');
+  t.ok(!pulih.bukanObjek, 'JSON yang bukan objek ditolak');
+  t.ok(pulih.utuh, 'pemulihan yang gagal nggak ngerusak data yang lagi kepakai');
+  t.ok(pulih.berhasil && pulih.masuk, 'cadangan yang sah kepulihin lewat jalur teks');
+  t.ok(pulih.lawasKepakai, 'cadangan lama tetap bisa dipulihin');
+  t.ok(pulih.lawasDapatAgenda, 'cadangan lama dapat field baru lewat migrate(), nggak nabrak undefined');
 
   // ---------- ganti hari waktu app lagi kebuka ----------
   const gantiHari = await page.evaluate(() => typeof lastDay === 'string' && lastDay === today());

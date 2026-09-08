@@ -347,7 +347,8 @@ function sheetSettings(){
       <button class="btn ghost block sm" id="stExp">Unduh cadangan</button>
       <button class="btn ghost block sm" id="stImp">Pulihkan</button>
     </div>
-    <input type="file" id="stFile" accept="application/json" style="display:none">
+    <input type="file" id="stFile" accept="*/*" style="display:none">
+    <button class="btn ghost block sm" id="stTempel" style="margin-top:9px">Pulihkan dari teks yang disalin</button>
     <button class="btn danger block sm" id="stReset">Hapus semua data</button>
     <div class="note" style="text-align:center;padding:6px 0 2px">Rutin · dibuat khusus buat lo</div>
   </div>`);
@@ -389,26 +390,30 @@ function sheetSettings(){
       if (r && r.data && r.data.v){ S = r.data; LS.set('rutin.state',S); render(); toast('Data cloud dipakai'); }
       else toast('Cloud masih kosong'); }catch(e){ toast('Gagal narik data'); } });
   g('stPush')  && (g('stPush').onclick = async ()=>{ await Cloud.push(true); toast('Terkirim ke cloud'); });
+  /* Di dalam APK, unduhan lewat blob URL sering nggak ngapa-ngapain — WebView-nya
+     nggak punya pengelola unduhan. Dulu kodenya tetap bilang "Cadangan diunduh",
+     jadi orang ngira punya file padahal nggak. Sekarang di native langsung kasih
+     teksnya buat disalin, dan itu yang dijanjiin. */
   g('stExp').onclick = ()=>{
+    const isi = JSON.stringify(S, null, 2);
+    if (Native.on) return sheetCadanganTeks(isi);
     try{
-      const blob = new Blob([JSON.stringify(S,null,2)], {type:'application/json'});
+      const blob = new Blob([isi], {type:'application/json'});
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob); a.download = `rutin-cadangan-${today()}.json`; a.click();
       setTimeout(()=>URL.revokeObjectURL(a.href), 2000);
       toast('Cadangan diunduh');
-    }catch(e){
-      navigator.clipboard && navigator.clipboard.writeText(JSON.stringify(S));
-      toast('Disalin ke papan klip');
-    }
+    }catch(e){ sheetCadanganTeks(isi); }
   };
   g('stImp').onclick = ()=> g('stFile').click();
   g('stFile').onchange = ev => {
     const f = ev.target.files[0]; if (!f) return;
     const r = new FileReader();
-    r.onload = ()=>{ try{ const o = JSON.parse(r.result); if (!o.v) throw 0;
-      S = o; migrate(); commit(); closeSheet(); toast('Data dipulihkan'); }catch(e){ toast('File cadangan nggak valid'); } };
+    r.onload = ()=> pulihkanDari(String(r.result));
+    r.onerror = ()=> toast('Filenya nggak kebaca');
     r.readAsText(f);
   };
+  g('stTempel') && (g('stTempel').onclick = ()=> sheetTempelCadangan());
   g('stReset').onclick = ()=>{ if (confirm('Yakin hapus SEMUA data di HP ini? Nggak bisa dibalikin.')){
     S = seed(); commit(); closeSheet(); toast('Data direset'); } };
 }
@@ -436,6 +441,54 @@ function sheetQuick(){
         <div style="font-weight:700;font-size:14px;letter-spacing:-.02em">${n}</div>
         <div class="xs dim" style="margin-top:2px">${s}</div>
       </button>`).join('')}</div>`);
+}
+
+/* Satu jalur pemulihan buat file maupun teks yang ditempel, dan pesan galatnya
+   nyebut penyebabnya — "nggak valid" doang bikin orang buntu. */
+function pulihkanDari(teks){
+  let o;
+  try{ o = JSON.parse(teks); }
+  catch(e){ toast('Isinya bukan JSON yang utuh — mungkin kepotong pas nyalin', 3600); return false; }
+  if (!o || typeof o !== 'object'){ toast('Isinya bukan data Rutin', 3200); return false; }
+  if (!o.v){ toast('Ini JSON, tapi bukan cadangan Rutin (nggak ada penanda versi)', 4000); return false; }
+  Undo.simpan('pemulihan cadangan');
+  S = o; migrate(); commit();
+  closeSheet();
+  const n = (S.txns||[]).length + Object.keys(S.days||{}).length;
+  toast(`Data dipulihkan — ${n} catatan masuk`, 3600);
+  return true;
+}
+
+function sheetCadanganTeks(isi){
+  sheetSaveFn = null; sheetDelFn = null;
+  openSheet(`<h3>Cadangan</h3>
+    <div class="sheetsub">Salin semuanya, simpan di catatan atau kirim ke diri sendiri</div>
+    <textarea class="inp" id="cadTeks" readonly style="height:190px;font-size:11px;font-family:ui-monospace,monospace">${esc(isi)}</textarea>
+    <div class="note">${(isi.length/1024).toFixed(0)} KB. Buat mulihin nanti: Pengaturan → Pulihkan dari teks yang disalin.</div>
+    <button class="btn block" id="cadSalin" style="margin-top:14px">Salin semua</button>`);
+  $('#cadSalin').onclick = async ()=>{
+    const ta = $('#cadTeks');
+    try{
+      await navigator.clipboard.writeText(isi);
+      toast('Tersalin. Tempel di catatan sekarang juga.', 3600);
+    }catch(e){
+      ta.focus(); ta.select();
+      toast('Kepilih semua — tekan Salin di keyboard', 3600);
+    }
+  };
+}
+
+function sheetTempelCadangan(){
+  sheetSaveFn = null; sheetDelFn = null;
+  openSheet(`<h3>Pulihkan dari teks</h3>
+    <div class="sheetsub">Tempel isi cadangan yang lo salin</div>
+    <textarea class="inp" id="pulTeks" placeholder='{"v":1,"updatedAt":...' style="height:170px;font-size:11px;font-family:ui-monospace,monospace"></textarea>
+    <button class="btn block" id="pulOk" style="margin-top:14px">Pulihkan</button>`);
+  $('#pulOk').onclick = ()=>{
+    const t = val('pulTeks').trim();
+    if (!t){ toast('Belum ada yang ditempel'); return; }
+    pulihkanDari(t);
+  };
 }
 
 const SHEETS = {
