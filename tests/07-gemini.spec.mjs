@@ -44,7 +44,11 @@ export async function jalan(t) {
   const g = keGemini(permintaan);
 
   t.eq(g.systemInstruction.parts[0].text, 'Kamu asisten di aplikasi Rutin.', 'prompt sistem pindah ke systemInstruction');
-  t.eq(g.generationConfig.maxOutputTokens, 2048, 'max_tokens jadi maxOutputTokens');
+  // Gemini 2.5 mikir dulu, dan mikirnya motong jatah keluaran yang sama — permintaan
+  // 2048 sering habis kepakai mikir sampai jawabannya nggak kebagian.
+  t.eq(g.generationConfig.maxOutputTokens, 8192, 'jatah keluaran dinaikin ke lantai aman, bukan diturutin apa adanya');
+  t.eq(keGemini({ max_tokens: 32000, messages: [] }).generationConfig.maxOutputTokens, 32000,
+    'permintaan yang lebih gede dari lantainya tetap dihormatin');
   t.eq(g.contents.map(c => c.role), ['user', 'model', 'user'], 'peran assistant diterjemahin jadi model');
   t.eq(g.contents[0].parts, [{ text: 'tadi jajan 25rb' }], 'pesan teks biasa jadi satu part teks');
   t.eq(g.contents[1].parts[1].functionCall, { name: 'catat_transaksi', args: { tipe: 'keluar', jumlah: 25000 } },
