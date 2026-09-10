@@ -66,6 +66,10 @@ The gym and basketball program. Full contents in [TRAINING-PROGRAM.md](TRAINING-
 - **Session history** with completion percentage
 - **Ask-for-advice button** that opens the assistant with a prepared question
 
+- **Swap any exercise** — tap ⇄ on a row to pick a different movement for that slot. Alternatives keep the slot's pattern, sets/reps role, and rest, so the block still does the job it was designed for. Around 150 alternatives across roughly 60 slots, covering push, pull, both leg days, and all three basketball sessions.
+  - Load history is keyed to the **exercise**, not the slot. Swapping starts a fresh log for the new movement and leaves the old one intact; swap back and the old numbers return. Without that, dumbbell kilos and barbell kilos would share one chart.
+  - The jump-contact guardrail follows the swap. Trading a 15-contact drill for an 18-contact one moves the weekly total, because that counter exists to prevent injury, not to describe the plan.
+
 ### Session mode (full screen)
 
 - Exercises grouped into blocks with minute allocations

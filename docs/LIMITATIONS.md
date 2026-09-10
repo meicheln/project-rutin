@@ -174,6 +174,10 @@ The number is useful as a guardrail, not as a measurement. Fortunately the defau
 
 ## 9. Training logs are keyed to exercise IDs
 
+This is now load-bearing rather than incidental: swapping an exercise works *because* logs follow the
+exercise id, so each movement keeps its own weight history. The cost is unchanged — rename an id in
+`PROGRAM` or `ALT` and the logs under the old id are orphaned. Add new ids; don't rename shipped ones.
+
 `S.latihan.sesi[].set` and `.ceklis` are keyed by exercise IDs from the `PROGRAM` constant. Rename or remove `la_m1` and the old weight logs are orphaned — still in the data, but shown nowhere.
 
 Not a problem yet, because the program hasn't changed. It becomes one the moment it does.

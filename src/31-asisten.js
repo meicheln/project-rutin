@@ -204,6 +204,12 @@ const AI_TOOLS = [
       hapus:{type:'boolean'}
     }, required:['judul'] } },
 
+  { name:'ganti_gerakan', description:'Ganti satu gerakan di program latihan dengan alternatif yang polanya sama, atau balikin ke bawaan. Panggil baca_latihan dulu kalau belum tahu pilihannya.',
+    input_schema:{ type:'object', properties:{
+      gerakan:{type:'string', description:'Nama gerakan yang mau diganti, misal "incline dumbbell press". Dicocokkan dari namanya.'},
+      jadi:{type:'string', description:'Nama gerakan penggantinya. Kosongin atau tulis "bawaan" buat balik ke gerakan asli program.'}
+    }, required:['gerakan'] } },
+
   { name:'baca_data', description:'Baca data detail dari aplikasi buat menjawab pertanyaan atau bikin analisis.',
     input_schema:{ type:'object', properties:{
       bagian:{type:'string', enum:['uang','harian','skripsi','kerja','badan','ide','semua']},
@@ -354,19 +360,54 @@ const AI_RUN = {
     for (const k in m) if (a[k] != null){ S.settings[m[k]] = +a[k]; ubah.push(`${k.replace(/_/g,' ')} = ${a[k]}`); }
     return ubah.length ? 'Diubah: ' + ubah.join(', ') + '.' : 'Nggak ada yang diubah.';
   },
+  ganti_gerakan(a){
+    // cari slotnya dari nama gerakan yang lagi kepasang ATAU nama bawaannya,
+    // supaya "ganti X jadi Y" tetap jalan sesudah X sendiri hasil penggantian
+    const semua = Object.keys(SLOT).map(id => ({ slot:id, aktif:gerakan(id), asli:SLOT[id].ex }));
+    const q = String(a.gerakan||'').toLowerCase().trim();
+    const cocokNama = (nama) => { const n = String(nama).toLowerCase(); return n === q || n.includes(q) || q.includes(n); };
+    const target = semua.find(x => cocokNama(x.aktif.n)) || semua.find(x => cocokNama(x.asli.n));
+    if (!target){
+      const bisa = semua.filter(x => (typeof ALT !== 'undefined') && ALT[x.slot]).map(x => x.aktif.n);
+      return `Nggak nemu gerakan "${a.gerakan}". Yang bisa diganti: ${bisa.slice(0,12).join(', ')}${bisa.length>12?', dan lainnya':''}.`;
+    }
+
+    const pilihan = pilihanGerakan(target.slot);
+    if (pilihan.length < 2) return `"${target.aktif.n}" nggak punya alternatif — biasanya gerakan pemanasan atau pendinginan.`;
+
+    const jadi = String(a.jadi||'').toLowerCase().trim();
+    const L = LT();
+    if (!jadi || /bawaan|asli|default|semula/.test(jadi)){
+      delete L.ganti[target.slot];
+      try{ Notif.apply(); }catch(e){}
+      return `"${target.slot === target.aktif.id ? target.aktif.n : target.aktif.n}" dibalikin ke bawaan: ${pilihan[0].n}.`;
+    }
+
+    const pilih = pilihan.find(g => { const n = g.n.toLowerCase(); return n === jadi || n.includes(jadi) || jadi.includes(n); });
+    if (!pilih) return `"${a.jadi}" bukan pilihan buat slot itu. Yang ada: ${pilihan.map(g=>g.n).join(' | ')}.`;
+
+    if (pilih.id === pilihan[0].id) delete L.ganti[target.slot]; else L.ganti[target.slot] = pilih.id;
+    const sesiNama = PROGRAM[SLOT[target.slot].sid].n.split(' — ')[0];
+    return `Di ${sesiNama}, "${target.aktif.n}" diganti jadi "${pilih.n}" (${pilih.set>1?pilih.set+' set × ':''}${pilih.rep}). Beban dicatat terpisah, riwayat yang lama tetap ada.`;
+  },
   baca_latihan(a){
     const L = LT();
     const hariNama = ['minggu','senin','selasa','rabu','kamis','jumat','sabtu'];
     if (a.sesi && PROGRAM[a.sesi]){
-      const p = PROGRAM[a.sesi];
+      const p = sesi(a.sesi);
       return JSON.stringify({ sesi:p.n, jenis:p.jenis, menit:p.menit, fokus:p.fokus,
         blok:p.blok.map(b=>({ nama:b.n, menit:b.m, catatan:b.catatan,
-          gerakan:b.ex.map(e=>({ id:e.id, nama:e.n, set:e.set, rep:e.rep, istirahat:e.ist,
-            intensitas:e.int, kontak_lompatan:e.kontak, catat_beban:!!e.log, petunjuk:e.cue })) })) });
+          gerakan:b.ex.map(e=>{
+            const slot = e.slot || e.id;
+            const alt = pilihanGerakan(slot).map(g=>g.n);
+            return { id:e.id, nama:e.n, set:e.set, rep:e.rep, istirahat:e.ist,
+              intensitas:e.int, kontak_lompatan:e.kontak, catat_beban:!!e.log, petunjuk:e.cue,
+              bisa_diganti_jadi: alt.length > 1 ? alt.filter(n => n !== e.n) : undefined };
+          }) })) });
     }
     const n = a.riwayat || 6;
     const riwayat = [...L.sesi].filter(s=>sesiKelar(s)>0).sort((x,y)=>x.d<y.d?1:-1).slice(0,n).map(s=>{
-      const p = PROGRAM[s.sid];
+      const p = sesi(s.sid);
       const beban = {};
       for (const ex in (s.set||{})){
         const arr = (s.set[ex]||[]).filter(v=>v && (v.kg||v.rep));
@@ -391,7 +432,7 @@ const AI_RUN = {
   },
   catat_sesi_latihan(a){
     if (!PROGRAM[a.sesi]) return `Sesi "${a.sesi}" nggak ada. Pilihannya: ${Object.keys(PROGRAM).join(', ')}.`;
-    const d = tgOr(a.tanggal), s = bukaLog(d, a.sesi), p = PROGRAM[a.sesi];
+    const d = tgOr(a.tanggal), s = bukaLog(d, a.sesi), p = sesi(a.sesi);
     p.blok.forEach(b=>b.ex.forEach(e=>{ s.ceklis = s.ceklis||{}; s.ceklis[e.id] = true; }));
     if (a.catatan) s.kurang = a.catatan;
     if (a.rasa) s.rasa = clamp(Math.round(a.rasa),1,5);

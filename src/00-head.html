@@ -218,11 +218,14 @@ select.inp{appearance:none;background-image:url("data:image/svg+xml;utf8,<svg xm
 .bar>b{position:absolute;top:0;bottom:0;width:2px;background:var(--text);opacity:.5}
 
 /* sheet */
-.scrim{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:90;opacity:0;pointer-events:none;
+/* Di atas panel sesi (140) & asisten (150): sheet itu modal, dan dia harus bisa
+   dibuka DARI dalam panel tanpa nutup panelnya dulu — kalau ditutup, posisi di
+   tengah latihan ilang. Toast (200) tetap di atas sheet biar Urungkan kelihatan. */
+.scrim{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:160;opacity:0;pointer-events:none;
   transition:opacity .3s var(--ease);backdrop-filter:blur(2px)}
 .scrim.on{opacity:1;pointer-events:auto}
 .sheet{
-  position:fixed;left:50%;bottom:0;transform:translate(-50%,100%);width:100%;max-width:620px;z-index:100;
+  position:fixed;left:50%;bottom:0;transform:translate(-50%,100%);width:100%;max-width:620px;z-index:170;
   background:var(--bg-2);border-radius:var(--r-xl) var(--r-xl) 0 0;border:1px solid var(--border);border-bottom:0;
   padding:8px 16px calc(var(--safe-b) + 18px);max-height:92dvh;overflow-y:auto;
   visibility:hidden;

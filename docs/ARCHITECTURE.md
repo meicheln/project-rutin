@@ -103,6 +103,7 @@ S = {
     jadwal: { 0..6: ['lowerA', ...] },           // 0 = Sunday
     sesi:   [ {id, d, sid, mulai, selesai, ceklis:{exId:bool},
                set:{exId:[{kg,rep}]}, kurang, rasa, dicatat} ],
+    ganti:  { slotId: altExerciseId },           // chosen swaps; absent = program default
     jamIngat, ingatLatihan
   }
 }
@@ -421,15 +422,40 @@ The catalogue is static and not part of `S`. Only the record goes into `S.latiha
 
 **Consequence:** rename an exercise `id` and old logs are orphaned. See [LIMITATIONS.md](LIMITATIONS.md) §9.
 
+### Swapping an exercise
+
+`ALT` (`23-alternatif-latihan.js`) maps a slot id to alternatives that keep the slot's movement
+pattern. The user's choices live in `S.latihan.ganti`; `PROGRAM` itself is never modified.
+
+```js
+gerakan(slotId)      // the exercise actually in that slot right now
+pilihanGerakan(slot) // every option, program default first
+sesi(sid)            // PROGRAM[sid] with the user's swaps applied
+```
+
+**`sesi()` — not `PROGRAM[]` — is what gets drawn and what gets counted.** `kontakSesi()` and
+`sesiKelar()` both read it. A contact counter reading the raw catalogue would report the contacts of
+a drill the user isn't doing, and that counter is an injury guardrail, not a description of the plan.
+
+**Each alternative carries its own id, and logs key to it.** So a swap starts a fresh weight history
+and leaves the previous one intact — swap back and the old numbers reappear. Reusing the slot id
+would put dumbbell kilos and barbell kilos on the same chart.
+
+A choice pointing at an id that no longer exists silently falls back to the program default, so
+editing the catalogue can never strand a user on a broken slot.
+
 ### Rules encoded in tests
 
 The program enforces several things automatically rather than merely documenting them:
 
 1. Gym sessions ≤ 90 minutes, basketball ≤ 120
-2. Block minutes must sum exactly to the session duration
+2. Block minutes must sum exactly to the session duration (swaps fill slots, they never add or
+   remove one, so the sums hold)
 3. Lower-body days never coincide with basketball
 4. Weekly jump contacts ≤ 200 (the advanced-athlete ceiling)
-5. Every exercise has a technique cue and valid sets/reps
+5. Every exercise has a technique cue and valid sets/reps — **including every alternative in `ALT`**,
+   with ids unique across the whole catalogue. Otherwise swapping is a back door for adding a
+   movement with no coaching.
 
 Break one and `npm test` fails. That's deliberate: those rules are why the program is safe, so they belong in tests, not just notes.
 

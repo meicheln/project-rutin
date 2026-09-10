@@ -300,7 +300,51 @@ function LT(){
   if (!S.latihan) S.latihan = { jadwal: JSON.parse(JSON.stringify(JADWAL_BAKU)), sesi: [], jamIngat:'06:30', ingatLatihan:false };
   if (!S.latihan.jadwal) S.latihan.jadwal = JSON.parse(JSON.stringify(JADWAL_BAKU));
   if (!S.latihan.sesi) S.latihan.sesi = [];
+  if (!S.latihan.ganti) S.latihan.ganti = {};   // { idSlot: idGerakanPengganti }
   return S.latihan;
+}
+
+/* ---------- gerakan pengganti ----------
+   PROGRAM itu katalog asli dan nggak pernah diubah. Yang berubah cuma pilihan
+   pengganti di S.latihan.ganti, dan sesi() yang nyatuin keduanya.
+
+   Log beban dikunci ke id gerakan, bukan ke slotnya. Jadi ganti gerakan =
+   riwayat baru buat gerakan itu, dan riwayat yang lama tetap utuh di tempatnya.
+   Kalau id slot dipakai ulang, kg dumbbell bakal nyampur sama kg barbell di
+   grafik yang sama, dan angkanya jadi ngibul. */
+const SLOT = (() => {
+  const m = {};
+  for (const sid in PROGRAM) PROGRAM[sid].blok.forEach(b => b.ex.forEach(e => { m[e.id] = { ex:e, sid }; }));
+  return m;
+})();
+
+/* gerakan yang beneran dipakai di satu slot */
+function gerakan(slotId){
+  const asli = SLOT[slotId] && SLOT[slotId].ex;
+  if (!asli) return null;
+  const pilih = (LT().ganti || {})[slotId];
+  if (!pilih || pilih === slotId) return asli;
+  const alt = (typeof ALT !== 'undefined' ? (ALT[slotId] || []) : []).find(x => x.id === pilih);
+  return alt ? { ...alt, slot: slotId } : asli;   // pilihan basi -> balik ke bawaan
+}
+
+/* semua pilihan buat satu slot, bawaan selalu yang pertama */
+function pilihanGerakan(slotId){
+  const asli = SLOT[slotId] && SLOT[slotId].ex;
+  if (!asli) return [];
+  return [asli, ...(typeof ALT !== 'undefined' ? (ALT[slotId] || []) : [])];
+}
+
+/* PROGRAM sesudah pilihan pengganti dipakai. Ini yang digambar DAN yang dihitung —
+   kalau penghitung kontak masih baca PROGRAM mentah, rem cederanya ngelaporin
+   angka gerakan yang nggak lo kerjain. */
+function sesi(sid){
+  const p = PROGRAM[sid];
+  if (!p) return null;
+  const g = LT().ganti || {};
+  const adaGanti = p.blok.some(b => b.ex.some(e => g[e.id] && g[e.id] !== e.id));
+  if (!adaGanti) return p;
+  return { ...p, blok: p.blok.map(b => ({ ...b, ex: b.ex.map(e => gerakan(e.id)) })) };
 }
 const sesiHari = d => (LT().jadwal[fromD(d).getDay()] || []);
 const logSesi  = (d, id) => LT().sesi.find(s => s.d === d && s.sid === id);
@@ -311,12 +355,12 @@ function bukaLog(d, id){
 }
 const sesiKelar = s => {
   if (!s) return 0;
-  const p = PROGRAM[s.sid]; if (!p) return 0;
+  const p = sesi(s.sid); if (!p) return 0;
   const total = p.blok.reduce((t,b)=>t+b.ex.length, 0);
   return total ? Object.values(s.ceklis||{}).filter(Boolean).length / total : 0;
 };
 function kontakSesi(sid){
-  const p = PROGRAM[sid]; if (!p) return 0;
+  const p = sesi(sid); if (!p) return 0;
   return p.blok.reduce((t,b)=> t + b.ex.reduce((u,e)=>u + (e.kontak||0), 0), 0);
 }
 function mingguIni(){
@@ -379,7 +423,7 @@ function renderLatihan(){
 
   ${hariIni.length ? `<div class="sect"><h2>Hari ini</h2></div>
   <div class="stack">${hariIni.map(sid=>{
-    const p = PROGRAM[sid], s = logSesi(d, sid), pc = sesiKelar(s);
+    const p = sesi(sid), s = logSesi(d, sid), pc = sesiKelar(s);
     return `<button class="card press" data-mulai="${sid}" style="width:100%;text-align:left;border-left:3px solid var(${p.warna})">
       <div class="row between" style="margin-bottom:8px">
         <span class="row" style="gap:8px"><span style="font-size:17px">${p.ikon}</span>
@@ -409,7 +453,7 @@ function renderLatihan(){
         </div>
         <div class="grow">
           ${list.length ? list.map(sid=>{
-            const p = PROGRAM[sid];
+            const p = sesi(sid);
             return `<div class="row" style="gap:7px;margin-bottom:3px">
               <span class="dot" style="background:var(${p.warna})"></span>
               <span class="sm" style="font-weight:600">${esc(p.n.split(' — ')[0])}</span>
@@ -436,7 +480,7 @@ function renderLatihan(){
   <div class="sect"><h2>Riwayat & saran</h2></div>
   <button class="btn ghost block sm" id="saranLatihan" style="margin-bottom:12px">✦ Minta saran dari asisten</button>
   ${sesiTerakhir().length ? `<div class="card tight">${sesiTerakhir().map(s=>{
-    const p = PROGRAM[s.sid]; if (!p) return '';
+    const p = sesi(s.sid); if (!p) return '';
     const pc = sesiKelar(s);
     return `<button class="item press" data-riwayat="${s.id}" style="width:100%;text-align:left;background:none">
       <span class="ico" style="background:var(--surface-2)">${p.ikon}</span>
@@ -459,7 +503,7 @@ function renderLatihan(){
 let sesiAktif = null, timerIst = null;
 
 function bukaSesi(sid, tglSesi){
-  const p = PROGRAM[sid]; if (!p) return;
+  const p = sesi(sid); if (!p) return;
   sesiAktif = { sid, d: tglSesi || today() };
   const s = bukaLog(sesiAktif.d, sid);
   if (!s.mulai) s.mulai = new Date().toTimeString().slice(0,5);
@@ -498,7 +542,7 @@ function toggleCeklis(exId){
 }
 function perbaruiKepala(){
   if (!sesiAktif) return;
-  const { sid, d } = sesiAktif, p = PROGRAM[sid], pc = sesiKelar(bukaLog(d, sid));
+  const { sid, d } = sesiAktif, p = sesi(sid), pc = sesiKelar(bukaLog(d, sid));
   $('#sesSub').textContent = `${tglFull(d).split(',')[0]} · ${p.menit} menit · ${Math.round(pc*100)}%`;
   $('#sesRing').style.width = (pc*100).toFixed(0) + '%';
   const btn = $('#sesSelesai'); if (btn) btn.textContent = pc >= 1 ? 'Tutup' : 'Selesaikan sesi';
@@ -506,7 +550,7 @@ function perbaruiKepala(){
 
 function gambarSesi(){
   if (!sesiAktif) return;
-  const { sid, d } = sesiAktif, p = PROGRAM[sid], s = bukaLog(d, sid);
+  const { sid, d } = sesiAktif, p = sesi(sid), s = bukaLog(d, sid);
   const pc = sesiKelar(s);
   const scrollLama = $('#sesLog').scrollTop;
   const cueKebuka = $$('#sesLog .excue.on').map(e=>e.id);
@@ -536,6 +580,8 @@ function gambarSesi(){
                 <div class="exn">${esc(e.n)}</div>
                 <div class="exs">${e.set>1?e.set+' set × ':''}${esc(e.rep)}${e.int?' · '+esc(e.int):''}${e.ist&&e.ist!=='—'?' · ist '+esc(e.ist):''}${e.kontak?' · '+e.kontak+' kontak':''}</div>
               </button>
+              ${(typeof ALT !== 'undefined' && ALT[e.slot || e.id]) ?
+                `<button class="isttombol" data-ganti="${esc(e.slot || e.id)}" title="Ganti gerakan">⇄</button>` : ''}
               ${e.ist&&e.ist!=='—'?`<button class="isttombol" data-ist="${esc(e.ist)}">⏱</button>`:''}
             </div>
             <div class="excue" id="cue_${e.id}">${esc(e.cue||'')}</div>
@@ -579,7 +625,7 @@ function gambarSesi(){
   $('#sesSelesai').onclick = ()=>{
     const lg = bukaLog(d, sid);
     lg.selesai = new Date().toTimeString().slice(0,5);
-    const pj = PROGRAM[sid];
+    const pj = sesi(sid);
     // masukin ke linimasa harian sebagai blok waktu + catat latihan
     if (sesiKelar(lg) >= .5 && !lg.dicatat){
       lg.dicatat = true;
@@ -636,6 +682,42 @@ function pulihkanIstirahat(){
 }
 document.addEventListener('click', ev=>{ if (ev.target.closest('#istLewati')) stopIstirahat(); });
 
+/* ---------- sheet: ganti gerakan ---------- */
+function sheetGantiGerakan(slotId){
+  const pilihan = pilihanGerakan(slotId);
+  if (!pilihan.length) return;
+  const sekarang = gerakan(slotId);
+  const asli = pilihan[0];
+  sheetSaveFn = null; sheetDelFn = null;
+  openSheet(`<h3>Ganti gerakan</h3>
+    <div class="sheetsub">Pola gerakannya sama, jadi peran slot ini di program nggak berubah</div>
+    ${pilihan.map((g,i)=>{
+      const aktif = g.id === sekarang.id;
+      const riwayat = riwayatGerakan(g.id);
+      return `<button class="item press" data-pilihgerak="${esc(slotId)}|${esc(g.id)}"
+        style="width:100%;text-align:left;background:none">
+        <span class="check ${aktif?'on':''}" style="flex:none">
+          <svg viewBox="0 0 24 24" fill="none"><polyline points="4 12.5 9.5 18 20 6.5"/></svg></span>
+        <span class="grow">
+          <span class="t" style="display:block">${esc(g.n)}${i===0?' <span class="badge">bawaan</span>':''}</span>
+          <span class="s">${g.set>1?g.set+' set × ':''}${esc(g.rep)}${g.int?' · '+esc(g.int):''}${g.kontak?' · '+g.kontak+' kontak':''}</span>
+          ${riwayat?`<span class="xs dim" style="display:block;margin-top:3px">${riwayat}</span>`:''}
+        </span>
+      </button>`;
+    }).join('')}
+    <div class="note" style="margin-top:12px">Beban dicatat per gerakan, bukan per slot. Ganti gerakan berarti riwayat baru — yang lama tetap utuh dan balik lagi kalau lo ganti balik.</div>`);
+}
+
+/* ringkasan singkat riwayat satu gerakan, biar kelihatan mana yang pernah dipakai */
+function riwayatGerakan(exId){
+  const pakai = LT().sesi.filter(s => (s.ceklis||{})[exId]);
+  if (!pakai.length) return '';
+  const terakhir = pakai.map(s=>s.d).sort().at(-1);
+  let berat = 0;
+  pakai.forEach(s => (s.set?.[exId]||[]).forEach(v => { const kg = +v.kg||0; if (kg > berat) berat = kg; }));
+  return `${pakai.length}× dipakai · terakhir ${tgl(terakhir)}` + (berat ? ` · terberat ${String(berat).replace('.',',')} kg` : '');
+}
+
 /* ---------- sheet: atur jadwal ---------- */
 function sheetJadwalLatihan(){
   const L = LT();
@@ -683,7 +765,7 @@ function sheetJadwalLatihan(){
 
 /* ---------- delegasi khusus latihan ---------- */
 document.addEventListener('click', ev=>{
-  const t = ev.target.closest('[data-mulai],[data-lihat],[data-riwayat],[data-exceklis],[data-excue],[data-ist],[data-rasa],#sesTutup');
+  const t = ev.target.closest('[data-mulai],[data-lihat],[data-riwayat],[data-exceklis],[data-excue],[data-ist],[data-rasa],[data-ganti],[data-pilihgerak],#sesTutup');
   if (!t) return;
   const dd = t.dataset;
   if (t.id === 'sesTutup'){ tutupSesi(); return; }
@@ -693,6 +775,18 @@ document.addEventListener('click', ev=>{
   if (dd.exceklis && sesiAktif){ toggleCeklis(dd.exceklis); return; }
   if (dd.excue){ const c = $('#cue_'+dd.excue); c && c.classList.toggle('on'); return; }
   if (dd.ist){ mulaiIstirahat(dd.ist); buzz(8); return; }
+  if (dd.ganti){ sheetGantiGerakan(dd.ganti); return; }
+  if (dd.pilihgerak){
+    const [slotId, pilih] = dd.pilihgerak.split('|');
+    const L = LT();
+    // bawaan disimpen sebagai "nggak ada pilihan", bukan sebagai id — biar kalau
+    // programnya nanti diubah, slot itu ngikut yang baru, bukan nyangkut di yang lama
+    if (pilih === slotId) delete L.ganti[slotId]; else L.ganti[slotId] = pilih;
+    commit(false); closeSheet();
+    if (sesiAktif) gambarSesi(); else render();
+    toast('Diganti jadi ' + gerakan(slotId).n, 2600);
+    return;
+  }
   if (dd.rasa && sesiAktif){
     const s = bukaLog(sesiAktif.d, sesiAktif.sid);
     s.rasa = s.rasa === +dd.rasa ? 0 : +dd.rasa;

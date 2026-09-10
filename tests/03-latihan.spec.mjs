@@ -91,6 +91,112 @@ export async function jalan(t) {
   t.ok(log.kurang.includes('lambat'), 'catatan kekurangan kesimpan');
   t.eq(log.rasa, 2, 'penilaian rasa kesimpan');
 
+  // ---------- gerakan pengganti ----------
+  // Aturan yang sama kayak PROGRAM dipakai juga ke katalog pengganti. Kalau nggak,
+  // ganti gerakan jadi pintu belakang buat masukin gerakan tanpa petunjuk teknik.
+  const katalog = await page.evaluate(() => {
+    const semua = [];
+    for (const slot in ALT) ALT[slot].forEach(g => semua.push({ slot, ...g }));
+    const idProgram = Object.keys(SLOT);
+    const idAlt = semua.map(g => g.id);
+    return {
+      jumlah: semua.length,
+      slot: Object.keys(ALT).length,
+      tanpaCue: semua.filter(g => !g.cue || g.cue.length < 15).map(g => g.id),
+      tanpaSet: semua.filter(g => !g.set || !g.rep).map(g => g.id),
+      idKembar: idAlt.filter((x, i) => idAlt.indexOf(x) !== i),
+      tabrakProgram: idAlt.filter(x => idProgram.includes(x)),
+      slotNgawur: Object.keys(ALT).filter(sl => !SLOT[sl]),
+      kontakGila: semua.filter(g => g.kontak && (g.kontak < 1 || g.kontak > 40)).map(g => g.id),
+    };
+  });
+  t.ok(katalog.jumlah > 100, `katalog pengganti keisi (${katalog.jumlah} gerakan buat ${katalog.slot} slot)`);
+  t.eq(katalog.tanpaCue, [], 'tiap gerakan pengganti punya petunjuk teknik');
+  t.eq(katalog.tanpaSet, [], 'tiap gerakan pengganti punya set & rep');
+  t.eq(katalog.idKembar, [], 'nggak ada id pengganti yang kembar');
+  t.eq(katalog.tabrakProgram, [], 'id pengganti nggak nabrak id bawaan program');
+  t.eq(katalog.slotNgawur, [], 'tiap slot di katalog beneran ada di program');
+  t.eq(katalog.kontakGila, [], 'jumlah kontak tiap pengganti masih masuk akal');
+
+  const ganti = await page.evaluate(() => {
+    const L = LT();
+    L.ganti = {};
+    const sebelum = { nama: gerakan('pu_a1').n, kontak: kontakSesi('lowerA') };
+
+    // ganti biasa
+    L.ganti['pu_a1'] = ALT['pu_a1'][0].id;
+    const sesudah = gerakan('pu_a1');
+    const diSesi = sesi('push').blok.flatMap(b => b.ex).find(e => e.slot === 'pu_a1');
+
+    // rem cedera harus ngikutin gerakan yang beneran dipasang
+    const altPlyo = ALT['la_p2'].find(g => g.kontak !== SLOT['la_p2'].ex.kontak);
+    L.ganti['la_p2'] = altPlyo.id;
+    const kontakBaru = kontakSesi('lowerA');
+    const selisihBenar = kontakBaru - sebelum.kontak === altPlyo.kontak - SLOT['la_p2'].ex.kontak;
+
+    // durasi sesi & blok nggak boleh berubah gara-gara ganti gerakan
+    const durasiTetap = sesi('lowerA').menit === PROGRAM.lowerA.menit
+      && sesi('lowerA').blok.reduce((t,b)=>t+b.m,0) === PROGRAM.lowerA.blok.reduce((t,b)=>t+b.m,0);
+    const jumlahGerakTetap = sesi('lowerA').blok.reduce((t,b)=>t+b.ex.length,0)
+      === PROGRAM.lowerA.blok.reduce((t,b)=>t+b.ex.length,0);
+
+    // pilihan basi (gerakan dihapus dari katalog) harus mundur ke bawaan, bukan bikin macet
+    L.ganti['pu_a2'] = 'gerakan-yang-udah-nggak-ada';
+    const basi = gerakan('pu_a2').n === SLOT['pu_a2'].ex.n;
+
+    // balik ke bawaan
+    delete L.ganti['pu_a1'];
+    const balik = gerakan('pu_a1').n;
+
+    L.ganti = {};
+    return { sebelum, sesudahNama: sesudah.n, sesudahId: sesudah.id, diSesiNama: diSesi && diSesi.n,
+             selisihBenar, durasiTetap, jumlahGerakTetap, basi, balik,
+             kontakLama: sebelum.kontak, kontakBaru };
+  });
+  t.ok(ganti.sesudahNama !== ganti.sebelum.nama, 'gerakan kepasang berubah sesudah dipilih');
+  t.eq(ganti.diSesiNama, ganti.sesudahNama, 'sesi() ikut nampilin gerakan penggantinya, bukan bawaan');
+  t.ok(ganti.sesudahId !== 'pu_a1', 'pengganti punya id sendiri — log bebannya kepisah dari gerakan lama');
+  t.ok(ganti.selisihBenar, `penghitung kontak ngikutin gerakan yang dipasang (${ganti.kontakLama} → ${ganti.kontakBaru})`);
+  t.ok(ganti.durasiTetap, 'durasi sesi & blok nggak berubah gara-gara ganti gerakan');
+  t.ok(ganti.jumlahGerakTetap, 'jumlah gerakan per sesi tetap — slot diisi, bukan ditambah');
+  t.ok(ganti.basi, 'pilihan yang gerakannya udah nggak ada mundur ke bawaan, bukan bikin macet');
+  t.eq(ganti.balik, ganti.sebelum.nama, 'hapus pilihan = balik ke gerakan bawaan');
+
+  // log beban kepisah per gerakan, bukan per slot
+  const riwayat = await page.evaluate(() => {
+    const L = LT(); L.ganti = {};
+    const d = today();
+    const asli = SLOT['pu_a1'].ex.id, alt = ALT['pu_a1'][0].id;
+    const s = bukaLog(d, 'push');
+    s.ceklis = {}; s.set = {};
+    s.set[asli] = [{ kg: 30, rep: 8 }];
+    L.ganti['pu_a1'] = alt;
+    s.set[alt] = [{ kg: 60, rep: 8 }];
+    const hasil = { asli: s.set[asli][0].kg, alt: s.set[alt][0].kg };
+    L.ganti = {}; s.set = {}; s.ceklis = {};
+    return hasil;
+  });
+  t.eq(riwayat.asli, 30, 'beban gerakan bawaan tetap tersimpan sesudah diganti');
+  t.eq(riwayat.alt, 60, 'beban gerakan pengganti kesimpen terpisah, bukan nimpa yang lama');
+
+  // alat asisten
+  const alatGanti = await page.evaluate(() => {
+    LT().ganti = {};
+    const hasil = {};
+    hasil.ganti = AI_RUN.ganti_gerakan({ gerakan: 'incline dumbbell press', jadi: 'incline barbell press' });
+    hasil.terpasang = gerakan('pu_a1').n;
+    hasil.salahPilihan = AI_RUN.ganti_gerakan({ gerakan: 'incline barbell press', jadi: 'squat' });
+    hasil.takAda = AI_RUN.ganti_gerakan({ gerakan: 'gerakan ngaco banget', jadi: 'apa aja' });
+    hasil.balik = AI_RUN.ganti_gerakan({ gerakan: 'incline barbell press', jadi: 'bawaan' });
+    hasil.sesudahBalik = gerakan('pu_a1').n;
+    LT().ganti = {};
+    return hasil;
+  });
+  t.ok(/Incline barbell press/i.test(alatGanti.terpasang), 'asisten bisa ganti gerakan dari nama biasa');
+  t.ok(/bukan pilihan/i.test(alatGanti.salahPilihan), 'pengganti yang polanya beda ditolak, bukan dipaksain');
+  t.ok(/Nggak nemu/i.test(alatGanti.takAda), 'nama gerakan yang ngaco dijawab jelas');
+  t.eq(alatGanti.sesudahBalik, 'Incline dumbbell press', 'asisten bisa mbalikin ke bawaan');
+
   // ---------- timer istirahat ----------
   await page.click('[data-ist="2,5 mnt"]'); await page.waitForTimeout(1400);
   const timer = await page.evaluate(() => ({
