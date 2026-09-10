@@ -108,6 +108,33 @@ export async function jalan(t) {
   ]}}]}, 'x');
   t.ok(ganda.content[0].id !== ganda.content[1].id, 'panggilan alat berbarengan dapat id yang beda');
 
+  // ---------- tanda tangan proses mikir ----------
+  // Ini yang bikin asisten mati di giliran KEDUA sementara yang pertama mulus:
+  // Gemini 2.5 nyelipin thoughtSignature di tiap functionCall, dan nolak riwayat
+  // yang dikirim balik tanpa tanda tangan itu. Dulu penerjemahnya ngebuang.
+  const berttd = dariGemini({ candidates: [{ content: { parts: [
+    { thought: true, text: 'ini isi kepala, jangan dipajang' },
+    { functionCall: { name: 'baca_latihan', args: {} }, thoughtSignature: 'Ct8BAcu9…' },
+  ]}}]}, 'gemini-2.5-flash');
+  t.eq(berttd.content.length, 1, 'part bertanda thought nggak ikut jadi jawaban');
+  t.eq(berttd.content[0].thoughtSignature, 'Ct8BAcu9…', 'tanda tangan disimpen di blok tool_use');
+
+  const balik = keGemini({ messages: [
+    { role: 'assistant', content: [berttd.content[0]] },
+    { role: 'user', content: [{ type: 'tool_result', tool_use_id: berttd.content[0].id, content: 'ok' }] },
+  ]});
+  t.eq(balik.contents[0].parts[0].thoughtSignature, 'Ct8BAcu9…',
+    'tanda tangan dipasang lagi waktu riwayat dikirim balik ke Gemini');
+  t.eq(balik.contents[0].parts[0].functionCall.name, 'baca_latihan', 'panggilan alatnya tetap utuh');
+
+  // penyedia yang nggak ngirim tanda tangan nggak boleh bikin field kosong nyasar
+  const tanpa = dariGemini({ candidates: [{ content: { parts: [
+    { functionCall: { name: 'a', args: {} } },
+  ]}}]}, 'x');
+  t.ok(!('thoughtSignature' in tanpa.content[0]), 'tanpa tanda tangan, fieldnya nggak dibikin sama sekali');
+  const balikTanpa = keGemini({ messages: [{ role: 'assistant', content: [tanpa.content[0]] }] });
+  t.ok(!('thoughtSignature' in balikTanpa.contents[0].parts[0]), 'dan nggak dikirim sebagai undefined');
+
   // ---------- daftar model ----------
   const dm = daftarModel({ models: [
     { name: 'models/gemini-2.5-pro', supportedGenerationMethods: ['generateContent'] },

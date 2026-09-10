@@ -43,7 +43,13 @@ export function keGemini(body: any) {
         parts.push({ text: b.text });
       } else if (b.type === 'tool_use') {
         namaAlat.set(b.id, b.name);
-        parts.push({ functionCall: { name: b.name, args: b.input ?? {} } });
+        const bagian: any = { functionCall: { name: b.name, args: b.input ?? {} } };
+        // Gemini 2.5 mikir dulu sebelum manggil alat, dan nyelipin tanda tangan
+        // proses mikirnya di part itu. Waktu riwayat dikirim balik, tanda tangannya
+        // WAJIB ikut — kalau nggak, dia nolak dengan "missing a thought_signature".
+        // Panggilan pertama selalu lolos (belum ada riwayat), yang kedua yang mati.
+        if (b.thoughtSignature) bagian.thoughtSignature = b.thoughtSignature;
+        parts.push(bagian);
       } else if (b.type === 'tool_result') {
         // Gemini minta NAMA fungsinya, Anthropic cuma ngasih id — makanya
         // namanya diingat waktu ngelewatin giliran asisten sebelumnya.
@@ -83,15 +89,20 @@ export function dariGemini(g: any, model: string) {
   let n = 0;
 
   for (const p of parts) {
+    // part bertanda thought itu isi kepalanya model, bukan jawabannya — jangan dipajang
+    if (p.thought) continue;
+    const ttd = p.thoughtSignature ?? p.thought_signature;
     if (typeof p.text === 'string' && p.text) {
       content.push({ type: 'text', text: p.text });
     } else if (p.functionCall) {
-      // Gemini nggak ngasih id panggilan; aplikasi butuh id buat mencocokkan hasil
+      // Gemini nggak ngasih id panggilan; aplikasi butuh id buat mencocokkan hasil.
+      // thoughtSignature ikut dibawa supaya bisa dibalikin apa adanya giliran depan.
       content.push({
         type: 'tool_use',
         id: `call_${++n}_${Date.now().toString(36)}`,
         name: p.functionCall.name,
         input: p.functionCall.args ?? {},
+        ...(ttd ? { thoughtSignature: ttd } : {}),
       });
     }
   }
