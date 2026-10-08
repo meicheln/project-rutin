@@ -11,8 +11,27 @@ const AI = {
   save(){ LS.set('rutin.ai', this.cfg); },
   /* lewat server kalau udah masuk Supabase dan pengguna nggak sengaja milih kunci lokal */
   lewatServer(){ return !!(Cloud.ready && !this.mundur && !this.cfg.paksaLokal); },
-  siap(){ return !!this.cfg.model && (this.cfg.key || this.lewatServer()); }
+  siap(){ return !!this.cfg.model && (this.cfg.key || this.lewatServer()); },
+
+  /* Riwayat obrolan ikut disimpan ke S, jadi dia selamat waktu app ditutup dan
+     ikut sinkron ke perangkat lain. Tanpa ini tiap buka app mulai dari nol, dan
+     itu yang bikin nggak kerasa ngobrol.
+     Dipotong dari depan biar S nggak membengkak — hasil alat baca bisa ribuan
+     karakter sekali panggil. Potongnya mesti berhenti di giliran user, soalnya
+     API nolak riwayat yang nggak mulai dari situ. */
+  rapikan(){
+    let r = this.raw;
+    try{
+      while (r.length > 2 && JSON.stringify(r).length > BATAS_CHAT) r = r.slice(1);
+    }catch(e){ r = []; }
+    while (r.length && r[0].role !== 'user') r = r.slice(1);
+    this.raw = r;
+    return r;
+  },
+  simpan_chat(){ S.aiChat = this.rapikan(); commit(false); },
+  pulihkan_chat(){ this.raw = Array.isArray(S.aiChat) ? S.aiChat : []; }
 };
+const BATAS_CHAT = 60000;   // karakter riwayat yang disimpan
 
 /* ---------- transport ----------
    Dua jalur, urutannya sengaja:
@@ -522,7 +541,21 @@ function aiSnapshot(){
 const AI_SYS = () => `Kamu asisten di dalam aplikasi "Rutin" — aplikasi pelacak harian milik penggunanya sendiri.
 Kamu bisa membaca dan mengubah isi aplikasi lewat alat yang tersedia.
 
-Bahasa: Indonesia santai, kayak temen yang ngebantu. Singkat dan langsung. Jangan kaku, jangan bertele-tele.
+Bahasa: Indonesia santai, kayak temen yang ngebantu. Jangan kaku.
+
+Panjang jawaban ngikutin apa yang diminta, bukan satu ukuran buat semua:
+- Nyatet sesuatu ("tadi jajan 25rb") -> catat, konfirmasi satu kalimat, udah.
+- Nanya fakta ("sisa budget berapa?") -> jawab angkanya, jangan dipanjangin.
+- Minta dipikirin ("gua harusnya fokus ke mana bulan ini?", "kenapa lompatan gua
+  mentok?", "ini worth it nggak?") -> ini obrolan beneran. Baca datanya dulu,
+  lalu bahas selengkap yang dia butuh: sebutkan angkanya, bandingin antar
+  periode, tunjukin pilihannya dan konsekuensi tiap pilihan. Boleh panjang.
+  Boleh nggak setuju sama dia kalau datanya bilang lain.
+- Cerita doang atau lagi ngeluh -> dengerin dan tanggapi kayak manusia. Nggak
+  semua pesan harus berujung ke alat. Jangan maksa nyatet apa pun.
+
+Kamu inget obrolan sebelumnya di sesi ini. Nyambung ke situ, jangan mulai dari
+nol tiap pesan.
 
 Aturan:
 - Kalau pengguna nyeritain sesuatu yang bisa dicatat, langsung catat pakai alat — jangan cuma nanya balik. Contoh: "tadi jajan 25rb" langsung catat pengeluaran makan 25000.
@@ -533,6 +566,11 @@ Aturan:
 - Buat pertanyaan analisis ("bulan ini boros di mana?", "gimana progres skripsi gua?"), pakai baca_data dulu baru jawab dengan angka konkret.
 - Bedain rencana sama catatan: "besok jam 9 ada bimbingan" itu tambah_agenda, "tadi pagi 2 jam ngerjain BAB III" itu catat_blok_waktu. Kalau ditanya soal bocornya waktu, panggil baca_agenda dulu.
 - Setelah nyatat, konfirmasi dalam satu kalimat. Jangan ngulang seluruh isi datanya.
+- Kalau mau ngasih saran, baca datanya dulu. Saran umum yang bisa ditulis siapa
+  aja tanpa lihat datanya itu nggak ada gunanya — dia punya aplikasi ini justru
+  biar sarannya nyebut angkanya sendiri.
+- Boleh nanya balik kalau pertanyaannya emang perlu diperjelas dulu. Obrolan itu
+  dua arah, bukan lo nembak perintah dan dia nurut.
 - Jangan bikin janji soal notifikasi, backup, atau hal di luar alat yang kamu punya.
 
 Soal latihan: penggunanya pemain basket level lanjut yang lagi ngejar vertical jump, gym alat lengkap.
@@ -547,6 +585,7 @@ ${aiSnapshot()}`;
 
 /* ---------- UI ---------- */
 function openAI(){
+  AI.pulihkan_chat();            // bisa berubah sesudah tarikan cloud
   $('#ai').classList.add('on');
   document.body.style.overflow = 'hidden';
   paintAI();
@@ -627,6 +666,19 @@ supabase secrets set ANTHROPIC_API_KEY=sk-ant-...</pre>
   }
 
   $('#aiBar').style.display = '';
+  if (AI.raw.length){
+    // gambar ulang obrolan yang tersimpan. Hasil alat dilewat — pas dulu dia
+    // udah muncul sebagai baris centang, dan nampilinnya lagi cuma jadi bising.
+    log.innerHTML = '';
+    AI.raw.forEach(m => {
+      const isi = Array.isArray(m.content) ? m.content : [{ type:'text', text:String(m.content||'') }];
+      isi.forEach(b => {
+        if (b.type === 'text' && b.text.trim()) aiBubble(m.role === 'user' ? 'me' : 'ai', b.text);
+      });
+    });
+    log.scrollTop = log.scrollHeight;
+    return;
+  }
   if (!AI.raw.length){
     const usul = [
       'tadi jajan 25rb buat makan siang',
@@ -697,7 +749,7 @@ async function aiSend(text){
     let guard = 0;
     while (guard++ < 8){
       const res = await aiReq('POST', '/v1/messages', {
-        model: AI.cfg.model, max_tokens: 2048, system: AI_SYS(),
+        model: AI.cfg.model, max_tokens: 4096, system: AI_SYS(),
         tools: AI_TOOLS, messages: AI.raw
       });
       AI.raw.push({ role:'assistant', content: res.content });
@@ -742,6 +794,7 @@ async function aiSend(text){
     aiBubble('ai', ramah || ('Gagal: ' + m));
   }finally{
     aiThinking(false);
+    AI.simpan_chat();
     AI.busy = false;
     render();
     $('#aiLog').scrollTop = $('#aiLog').scrollHeight;
@@ -754,7 +807,7 @@ document.addEventListener('click', ev=>{
   if (s){ aiSend(s.dataset.say); return; }
   if (ev.target.closest('#aiFab')){ openAI(); return; }
   if (ev.target.closest('#aiClose')){ closeAI(); return; }
-  if (ev.target.closest('#aiReset')){ AI.raw = []; paintAI(); toast('Obrolan dikosongkan'); return; }
+  if (ev.target.closest('#aiReset')){ AI.raw = []; AI.simpan_chat(); paintAI(); toast('Obrolan dikosongkan'); return; }
   if (ev.target.closest('#aiGear')){ closeAI(); sheetAI(); return; }
 });
 

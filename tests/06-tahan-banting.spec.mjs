@@ -65,6 +65,58 @@ export async function jalan(t) {
   t.ok(cadangan.latihanIkut, 'data latihan ikut ke cadangan');
   t.ok(cadangan.ukuranKB < 2048, `ukuran cadangan masih wajar (${cadangan.ukuranKB} KB untuk 45 hari)`);
 
+  // ---------- ekspor CSV ----------
+  const csv = await page.evaluate(() => {
+    S.txns = [{ id:'c1', d:'2026-03-02', type:'out', amt:25000, cat:'makan', note:'nasi; "padang"' },
+              { id:'c2', d:'2026-03-01', type:'in',  amt:4000000, cat:'gaji', note:'' }];
+    const f = laporanCSV();
+    const uang = f['keuangan'].split('\r\n');
+    return {
+      berkas: Object.keys(f),
+      kolom: uang[0],
+      urut: [uang[1].split(';')[0], uang[2].split(';')[0]],
+      // titik koma & kutip di catatan harus dibungkus, kalau nggak kolomnya geser
+      bungkus: uang.find(b => b.includes('nasi')),
+      tipeTerbaca: uang[2].includes('keluar'),
+      kategoriNama: uang[2].includes('Makan'),
+    };
+  });
+  t.ok(csv.berkas.includes('keuangan') && csv.berkas.includes('latihan-beban'),
+    `ekspor nyediain berkas per modul (${csv.berkas.length} berkas)`);
+  t.eq(csv.kolom, 'tanggal;tipe;jumlah;kategori;catatan', 'baris kepala sesuai kolomnya');
+  t.eq(csv.urut, ['2026-03-01','2026-03-02'], 'baris diurut dari tanggal paling lama');
+  t.ok(csv.bungkus.endsWith(String.fromCharCode(34).repeat(3)) && csv.bungkus.includes(';'),
+    'titik koma & kutip di catatan dibungkus, jadi kolomnya nggak geser');
+  t.ok(csv.tipeTerbaca, 'tipe ditulis kata, bukan kode in/out');
+  t.ok(csv.kategoriNama, 'kategori ditulis nama, bukan id');
+
+  // ---------- riwayat obrolan selamat ----------
+  const chat = await page.evaluate(() => {
+    AI.raw = [{ role:'user', content:'halo' }, { role:'assistant', content:[{type:'text',text:'hai'}] }];
+    AI.simpan_chat();
+    const kesimpen = (S.aiChat || []).length;
+    AI.raw = [];
+    AI.pulihkan_chat();
+    const pulih = AI.raw.length;
+
+    // riwayat kepanjangan dipotong dari depan, dan mesti berhenti di giliran user
+    AI.raw = [];
+    for (let i = 0; i < 60; i++){
+      AI.raw.push({ role:'user', content:'x'.repeat(2000) });
+      AI.raw.push({ role:'assistant', content:[{ type:'text', text:'y'.repeat(2000) }] });
+    }
+    AI.simpan_chat();
+    const sesudah = { jumlah: AI.raw.length, mulaiUser: AI.raw[0] && AI.raw[0].role === 'user',
+                      ukuran: JSON.stringify(AI.raw).length };
+    AI.raw = []; AI.simpan_chat();
+    return { kesimpen, pulih, sesudah };
+  });
+  t.eq(chat.kesimpen, 2, 'obrolan kesimpen ke S, jadi selamat waktu app ditutup');
+  t.eq(chat.pulih, 2, 'obrolan kebaca lagi waktu panel dibuka');
+  t.ok(chat.sesudah.jumlah < 120, `riwayat kepanjangan dipotong (sisa ${chat.sesudah.jumlah} pesan)`);
+  t.ok(chat.sesudah.ukuran < 70000, `ukurannya ketahan di bawah batas (${chat.sesudah.ukuran} karakter)`);
+  t.ok(chat.sesudah.mulaiUser, 'potongannya berhenti di giliran user — API nolak riwayat yang nggak');
+
   // ---------- aturan menang-mana waktu sinkron ----------
   // Dites lewat Cloud.syncDown() beneran, bukan lewat salinan aturannya. Versi lama
   // spec ini nulis ulang logikanya di dalam tes, jadi bug "pemasangan baru nimpa

@@ -342,6 +342,9 @@ function sheetSettings(){
         <button class="btn ghost block sm" id="stPush">Kirim ke cloud</button></div>`:''}
     </div>
 
+    <div class="lbl" style="margin-top:6px">Laporan</div>
+    <button class="btn ghost block sm" id="stCsv">Ekspor CSV buat Excel</button>
+
     <div class="lbl" style="margin-top:6px">Cadangan</div>
     <div class="row" style="gap:9px">
       <button class="btn ghost block sm" id="stExp">Unduh cadangan</button>
@@ -405,6 +408,7 @@ function sheetSettings(){
       toast('Cadangan diunduh');
     }catch(e){ sheetCadanganTeks(isi); }
   };
+  g('stCsv') && (g('stCsv').onclick = ()=> sheetEkspor());
   g('stImp').onclick = ()=> g('stFile').click();
   g('stFile').onchange = ev => {
     const f = ev.target.files[0]; if (!f) return;
@@ -441,6 +445,91 @@ function sheetQuick(){
         <div style="font-weight:700;font-size:14px;letter-spacing:-.02em">${n}</div>
         <div class="xs dim" style="margin-top:2px">${s}</div>
       </button>`).join('')}</div>`);
+}
+
+/* ---------- ekspor CSV ----------
+   Cadangan JSON itu buat aplikasi, bukan buat dibaca orang. Ini yang kebuka di
+   Excel atau Google Sheets: satu berkas per modul, kolomnya datar.
+
+   Dipisah dari cadangan dengan sengaja — ekspor ini buang bentuk aslinya
+   (blok waktu jadi baris sendiri, set latihan jadi baris sendiri), jadi dia
+   NGGAK bisa dipulihin balik. Buat mindahin perangkat tetap pakai cadangan. */
+const csvSel = v => {
+  const t = String(v ?? '');
+  return /[",;\n]/.test(t) ? '"' + t.replace(/"/g, '""') + '"' : t;
+};
+const csvDari = (kolom, baris) =>
+  [kolom.join(';'), ...baris.map(b => kolom.map(k => csvSel(b[k])).join(';'))].join('\r\n');
+
+function laporanCSV(){
+  const L = (typeof LT === 'function') ? LT() : { sesi: [] };
+  const blok = [], setLat = [];
+  for (const d in S.days) (S.days[d].blocks || []).forEach(b => {
+    let m1 = tmin(b.s), m2 = tmin(b.e); if (m2 <= m1) m2 += 1440;
+    blok.push({ tanggal:d, mulai:b.s, selesai:b.e, menit:m2-m1, kegiatan:actOf(b.c).n, detail:b.t });
+  });
+  (L.sesi || []).forEach(x => {
+    for (const ex in (x.set || {})) (x.set[ex] || []).forEach((v, i) => {
+      if (!v || (!v.kg && !v.rep)) return;
+      const g = (typeof SLOT !== 'undefined' && SLOT[ex]) ? SLOT[ex].ex.n : ex;
+      setLat.push({ tanggal:x.d, sesi:(PROGRAM[x.sid]||{}).n || x.sid, gerakan:g,
+                    set:i+1, kg:v.kg ?? '', rep:v.rep ?? '' });
+    });
+  });
+
+  return {
+    'keuangan':  csvDari(['tanggal','tipe','jumlah','kategori','catatan'],
+      [...S.txns].sort((a,b)=>a.d<b.d?-1:1).map(t=>({ tanggal:t.d, tipe:t.type==='in'?'masuk':'keluar',
+        jumlah:t.amt, kategori:catOf(t.cat).n, catatan:t.note }))),
+
+    'harian': csvDari(['tanggal','rutinitas_persen','bangun','tidur','lama_tidur_menit','mood','energi','catatan'],
+      Object.keys(S.days).sort().map(d=>({ tanggal:d, rutinitas_persen:Math.round(routinePct(d)*100),
+        bangun:dayRO(d).bangun, tidur:dayRO(d).tidur, lama_tidur_menit:sleepMin(d),
+        mood:dayRO(d).mood||'', energi:dayRO(d).energi||'', catatan:dayRO(d).catatan }))),
+
+    'blok-waktu': csvDari(['tanggal','mulai','selesai','menit','kegiatan','detail'],
+      blok.sort((a,b)=> a.tanggal<b.tanggal?-1: a.tanggal>b.tanggal?1: tmin(a.mulai)-tmin(b.mulai))),
+
+    'latihan-beban': csvDari(['tanggal','sesi','gerakan','set','kg','rep'],
+      setLat.sort((a,b)=>a.tanggal<b.tanggal?-1:1)),
+
+    'latihan-sesi': csvDari(['tanggal','sesi','persen_selesai','rasa','kontak_lompatan','catatan_kekurangan'],
+      [...(L.sesi||[])].sort((a,b)=>a.d<b.d?-1:1).map(x=>({ tanggal:x.d,
+        sesi:(PROGRAM[x.sid]||{}).n || x.sid, persen_selesai:Math.round(sesiKelar(x)*100),
+        rasa:['','berat banget','berat','pas','enteng','kurang nampol'][x.rasa||0]||'',
+        kontak_lompatan:Math.round(kontakSesi(x.sid)*sesiKelar(x)), catatan_kekurangan:x.kurang }))),
+
+    'badan': csvDari(['tanggal','berat_kg','kalori','gelas_air'],
+      [...S.badan.berat].sort((a,b)=>a.d<b.d?-1:1).map(b=>({ tanggal:b.d, berat_kg:b.kg,
+        kalori:(S.badan.asupan[b.d]||{}).kcal||'', gelas_air:(S.badan.asupan[b.d]||{}).air||'' }))),
+
+    'kerja': csvDari(['tanggal','jam','proyek','catatan'],
+      [...S.workLogs].sort((a,b)=>a.d<b.d?-1:1).map(w=>({ tanggal:w.d, jam:w.jam, proyek:w.proj, catatan:w.note }))),
+
+    'tugas': csvDari(['judul','proyek','prioritas','tenggat','selesai','tanggal_selesai'],
+      S.tasks.map(t=>({ judul:t.t, proyek:t.proj, prioritas:t.prio, tenggat:t.due,
+        selesai:t.done?'ya':'belum', tanggal_selesai:t.doneAt }))),
+
+    'skripsi': csvDari(['bab','persen','status','tenggat'],
+      S.skripsi.bab.map(b=>({ bab:b.n, persen:b.p, status:BAB_ST[b.st].n, tenggat:b.dl }))),
+  };
+}
+
+function sheetEkspor(){
+  const berkas = laporanCSV();
+  const nama = Object.keys(berkas);
+  sheetSaveFn = null; sheetDelFn = null;
+  openSheet(`<h3>Laporan CSV</h3>
+    <div class="sheetsub">Kebuka di Excel atau Google Sheets. Buat pindah perangkat pakai Cadangan, bukan ini.</div>
+    ${nama.map(n=>{
+      const baris = Math.max(0, berkas[n].split('\r\n').length - 1);
+      return `<button class="item press" data-csv="${esc(n)}" style="width:100%;text-align:left;background:none"
+        ${baris?'':'disabled style="opacity:.4;width:100%;text-align:left;background:none"'}>
+        <span class="grow"><span class="t" style="display:block">${esc(n)}.csv</span>
+          <span class="s">${baris} baris</span></span>
+        <span class="chip">${baris?'Ambil':'kosong'}</span>
+      </button>`;
+    }).join('')}`);
 }
 
 /* Satu jalur pemulihan buat file maupun teks yang ditempel, dan pesan galatnya
@@ -506,7 +595,7 @@ const SHEETS = {
 
 /* ---------- delegasi event ---------- */
 document.addEventListener('click', ev => {
-  const t = ev.target.closest('[data-go],[data-sheet],[data-rt],[data-mood],[data-energi],[data-air],[data-tx],[data-task],[data-taskedit],[data-bab],[data-bimb],[data-idea],[data-lat],[data-wlog],[data-block],[data-agenda],[data-mfilter],[data-kfilter],[data-ifilter],[data-chip],[data-edit]');
+  const t = ev.target.closest('[data-go],[data-sheet],[data-rt],[data-mood],[data-energi],[data-air],[data-tx],[data-task],[data-taskedit],[data-bab],[data-bimb],[data-idea],[data-lat],[data-wlog],[data-block],[data-agenda],[data-csv],[data-mfilter],[data-kfilter],[data-ifilter],[data-chip],[data-edit]');
   if (!t) return;
   const d = t.dataset;
 
@@ -534,6 +623,22 @@ document.addEventListener('click', ev => {
   if (d.lat){ const x = S.badan.latihan.find(v=>v.id===d.lat); x && sheetLatihan(x); return; }
   if (d.wlog){ const x = S.workLogs.find(v=>v.id===d.wlog); x && sheetJam(x); return; }
   if (d.block){ const x = (dayRO(dayCur).blocks||[]).find(v=>v.id===d.block); x && sheetBlock(x); return; }
+  if (d.csv){
+    const isi = laporanCSV()[d.csv];
+    if (!isi) return;
+    const berkas = `rutin-${d.csv}-${today()}.csv`;
+    // Di APK, unduhan blob URL diem aja — jadi di native teksnya dikasih buat disalin,
+    // alasan yang sama kayak ekspor cadangan.
+    if (Native.on) return sheetCadanganTeks(isi);
+    try{
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(new Blob([isi], {type:'text/csv;charset=utf-8'}));
+      a.download = berkas; a.click();
+      setTimeout(()=>URL.revokeObjectURL(a.href), 2000);
+      toast(berkas + ' diunduh');
+    }catch(e){ sheetCadanganTeks(isi); }
+    return;
+  }
   if (d.agenda){
     // item turunan bukan punya agenda — lempar ke sumber aslinya
     if (d.agenda.startsWith('lat:')){ bukaSesi(d.agenda.slice(4)); return; }

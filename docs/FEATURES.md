@@ -15,6 +15,7 @@ A one-screen summary of today.
 - **Today's agenda** — everything planned for today in one list: manual entries, the training sessions already on the weekly schedule, and tasks due today. The block covering the current time is marked *sekarang*; past ones dim.
 - **Agenda reminders** — each entry can fire a notification 5 to 60 minutes before it starts, once, daily, or on chosen weekdays.
 - **This month's cash flow** — net, in, out, and a budget bar that changes color at 80% and 100%
+- **CSV export** — nine files, one per module, that open in Excel or Sheets. Time blocks and training sets are flattened to one row each, which is why it is an export and not a backup: it cannot be restored. Moving devices still uses the JSON backup.
 - **Four KPI cards** — thesis, work hours over 7 days, latest weight, water today; all tappable
 - **7-day routine bar chart**
 - **Upcoming deadlines** — thesis, work, and content merged into one sorted list with day counts
@@ -136,7 +137,9 @@ The star button above the add button.
 - **Write in plain language** — "tadi jajan nasi goreng 25rb terus udah olahraga" records the expense and ticks the workout routine in one go
 - **Every action is shown** as a green checked line, so you can catch anything filed wrong
 - **Answers questions about your own data** — "where am I overspending this month?", "what's my average sleep?"
-- **22 tools**: transactions, tasks, work hours, ideas, timeline blocks, agenda entries, routines, sleep times, weight, workouts, intake, thesis chapters, advisor notes, targets, training schedule, training sessions, and three read tools
+- **Conversation that persists.** The chat is saved with the rest of the data, so it survives closing the app and follows the account to another device. Trimmed from the front at a size cap, always landing on a user turn.
+- **Reply length follows the request.** Logging gets one line back; a question gets its answer; "what should I focus on this month" gets a real discussion with the numbers in it. Not every message has to end in a tool call.
+- **23 tools**: transactions, tasks, work hours, ideas, timeline blocks, agenda entries, routines, sleep times, weight, workouts, intake, thesis chapters, advisor notes, targets, training schedule, training sessions, and three read tools
 - **Training advice** that reads the program, history, logged weights, and shortfall notes
 - **Model chosen automatically** from what's available on the account, changeable manually
 - **Human-readable error messages** for a bad key, exhausted credit, a missing model, and network trouble
