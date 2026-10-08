@@ -50,6 +50,22 @@ const balas = (status: number, isi: unknown) =>
 
 const salah = (status: number, pesan: string) => balas(status, { error: { message: pesan } });
 
+/* Catat KEGAGALAN aja, dan cuma metadatanya: status, model, pesan dari penyedia.
+   Isi percakapan nggak pernah ikut — itu catatan harian penggunanya.
+
+   Ini ada karena log Edge Function cuma kebaca lewat dashboard, jadi tiap kali
+   asisten error satu-satunya cara tahu penyebabnya adalah minta pengguna
+   motret layar. Sekarang bisa dibaca langsung dari SQL. */
+async function catatGalat(svc: any, userId: string, status: number, model: string, pesan: string) {
+  if (!svc) return;
+  try {
+    await svc.from('rutin_galat').insert({
+      user_id: userId, status, model,
+      pesan: String(pesan).slice(0, 500),
+    });
+  } catch (_) { /* gagal nyatat galat jangan sampai bikin galat baru */ }
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
   if (req.method !== 'POST') return salah(405, 'Cuma nerima POST.');
@@ -94,8 +110,8 @@ Deno.serve(async (req) => {
   // Ditulis pakai service role, dan tabelnya sengaja nggak punya policy sama sekali —
   // kalau pengguna bisa nulis sendiri, dia (atau token yang bocor) tinggal reset ke 0.
   const svcKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-  if (svcKey) {
-    const svc = createClient(url, svcKey, { auth: { persistSession: false } });
+  const svc = svcKey ? createClient(url, svcKey, { auth: { persistSession: false } }) : null;
+  if (svc) {
     const hari = new Date().toISOString().slice(0, 10);
     const { data: kuota } = await svc
       .from('rutin_kuota').select('jumlah').eq('user_id', user.id).eq('hari', hari).maybeSingle();
@@ -106,7 +122,8 @@ Deno.serve(async (req) => {
     // dicatat sebelum diteruskan — kalau putus di tengah, mendingan kehitung lebih daripada kelewat
     await svc.from('rutin_kuota')
       .upsert({ user_id: user.id, hari, jumlah: kepakai + 1 }, { onConflict: 'user_id,hari' });
-  } else {
+  }
+  if (!svc) {
     // Supabase biasanya nyuntik ini otomatis. Kalau nggak ada, kuota mati tapi
     // pemeriksaan token di atas tetap jalan — itu pengaman utamanya, ini lapis kedua.
     console.error('SUPABASE_SERVICE_ROLE_KEY nggak ada — kuota harian nggak aktif');
@@ -117,9 +134,14 @@ Deno.serve(async (req) => {
   if (kunciGemini) {
     try {
       const g = await panggilGemini(jalur, metode, isi.body ?? {}, kunciGemini);
+      if (g.status >= 400) {
+        await catatGalat(svc, user.id, g.status, String(isi.body?.model ?? '-'),
+          String((g.data as any)?.error?.message ?? ''));
+      }
       return balas(g.status, g.data);
     } catch (e) {
       console.error('gemini tak terjangkau', String(e));   // pesannya doang, bukan isinya
+      await catatGalat(svc, user.id, 502, String(isi.body?.model ?? '-'), String(e));
       return salah(502, 'Nggak bisa nyambung ke Gemini.');
     }
   }

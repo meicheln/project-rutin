@@ -132,12 +132,28 @@ export function daftarModel(g: any) {
   return { data: model.map((id: string) => ({ id, type: 'model', display_name: id })) };
 }
 
+/* Tier gratis Gemini jatah panggilan per menitnya rendah, dan satu percakapan
+   di aplikasi nembak 2-4 panggilan beruntun (giliran alat). Jadi 429 itu kondisi
+   yang diharapkan, bukan kejadian luar biasa — ditunggu bentar terus diulang,
+   bukan dilempar ke muka pengguna.
+   ponytail: jeda tetap 1s lalu 3s, bukan baca Retry-After. Kalau nanti kena
+   batas lebih sering, baru pakai angka dari header. */
+const TUNGGU_MS = [1000, 3000];
+
+async function fetchUlangKalauPadat(url: string, opsi: RequestInit) {
+  for (let coba = 0; ; coba++) {
+    const r = await fetch(url, opsi);
+    if (r.status !== 429 || coba >= TUNGGU_MS.length) return r;
+    await new Promise((res) => setTimeout(res, TUNGGU_MS[coba]));
+  }
+}
+
 /** satu pintu: jalur ala Anthropic masuk, hasil ala Anthropic keluar */
 export async function panggilGemini(jalur: string, metode: string, body: any, kunci: string) {
   const kepala = { 'x-goog-api-key': kunci, 'content-type': 'application/json' };
 
   if (jalur.startsWith('/v1/models')) {
-    const r = await fetch(`${GEMINI}/models`, { headers: kepala });
+    const r = await fetchUlangKalauPadat(`${GEMINI}/models`, { headers: kepala });
     const d = await r.json();
     if (!r.ok) return { status: r.status, data: { error: { message: d?.error?.message ?? 'Gagal ambil daftar model.' } } };
     return { status: 200, data: daftarModel(d) };
@@ -145,7 +161,7 @@ export async function panggilGemini(jalur: string, metode: string, body: any, ku
 
   const model = String(body?.model ?? 'gemini-2.5-flash');
   const muatan = keGemini(body);
-  const r = await fetch(`${GEMINI}/models/${encodeURIComponent(model)}:generateContent`, {
+  const r = await fetchUlangKalauPadat(`${GEMINI}/models/${encodeURIComponent(model)}:generateContent`, {
     method: 'POST',
     headers: kepala,
     body: JSON.stringify(muatan),
