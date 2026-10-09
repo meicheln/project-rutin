@@ -443,6 +443,12 @@ const AI_RUN = {
       jadwal_mingguan: Object.fromEntries(Object.entries(L.jadwal).map(([w,v])=>
         [hariNama[w], v.map(sid=>PROGRAM[sid]?PROGRAM[sid].n:sid)])),
       daftar_sesi: Object.entries(PROGRAM).map(([k,p])=>`${k}: ${p.n} (${p.menit} mnt, ${p.jenis})`),
+      progres_beban: gerakanBerprogres().slice(0,12).map(g=>({
+        gerakan:g.nama, sesi:g.titik.length,
+        pertama:`${g.titik[0].kg}kg x ${g.titik[0].rep} (${g.titik[0].d})`,
+        terakhir:`${g.titik.at(-1).kg}kg x ${g.titik.at(-1).rep} (${g.titik.at(-1).d})`,
+        perubahan_1rm_kg:+(g.titik.at(-1).e - g.titik[0].e).toFixed(1) })),
+      catatan_progres:'perubahan_1rm_kg dari perkiraan Epley set terbaik tiap sesi. Angka mendekati nol berarti mandek — itu yang perlu disebut, bukan dilewat.',
       minggu_ini: { volume_angkat_kg: Math.round(volumeMinggu()),
         kontak_lompatan: Math.round(kontakMinggu()), batas_kontak: KONTAK_CAP },
       aturan: 'Hari lower sengaja dipisah dari basket. Batas kontak lompatan 200 per minggu buat level lanjut. Sesi gym maksimal 90 menit, basket maksimal 120 menit.',

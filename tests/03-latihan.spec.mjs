@@ -91,6 +91,57 @@ export async function jalan(t) {
   t.ok(log.kurang.includes('lambat'), 'catatan kekurangan kesimpan');
   t.eq(log.rasa, 2, 'penilaian rasa kesimpan');
 
+  // ---------- progres beban ----------
+  const progres = await page.evaluate(() => {
+    const L = LT();
+    const simpan = L.sesi;          // balikin lagi: tes sesudah ini butuh sesi yang asli
+    L.sesi = [
+      // kg naik tapi rep turun banyak: 1RM-nya TURUN. Grafik yang cuma baca kg
+      // bakal bilang naik, dan itu yang bikin orang ngerasa maju padahal nggak.
+      { id:'s1', d:'2026-01-01', sid:'push', ceklis:{}, set:{ pu_m1:[{kg:60,rep:10}] } },
+      { id:'s2', d:'2026-01-08', sid:'push', ceklis:{}, set:{ pu_m1:[{kg:70,rep:3}] } },
+      // set terbaik dipilih dari beberapa set di hari yang sama
+      { id:'s3', d:'2026-01-15', sid:'push', ceklis:{}, set:{ pu_m1:[{kg:60,rep:5},{kg:65,rep:6},{kg:62,rep:4}] } },
+      // rep kebangetan dibuang: rumusnya ngaco di situ
+      { id:'s4', d:'2026-01-22', sid:'push', ceklis:{}, set:{ pu_m1:[{kg:20,rep:40}] } },
+      // cuma sekali kecatat -> belum bisa digambar
+      { id:'s5', d:'2026-01-29', sid:'pull', ceklis:{}, set:{ pl_m1:[{kg:10,rep:5}] } },
+      // baris kosong nggak boleh bikin titik
+      { id:'s6', d:'2026-02-01', sid:'push', ceklis:{}, set:{ pu_m2:[{kg:'',rep:''},{}] } },
+    ];
+    const t = progresiGerakan('pu_m1');
+    const daftar = gerakanBerprogres();
+    const hasil = {
+      jumlahTitik: t.length,
+      tanggal: t.map(x => x.d),
+      setTerbaik: t[2] && { kg:t[2].kg, rep:t[2].rep },
+      turun: t[1].e < t[0].e,
+      repGila: t.some(x => x.rep > 12),
+      namaKepakai: (daftar.find(g => g.exId === 'pu_m1') || {}).nama,
+      sekaliDoang: daftar.some(g => g.exId === 'pl_m1'),
+      kosong: daftar.some(g => g.exId === 'pu_m2'),
+    };
+
+    // gerakan pengganti kebaca namanya juga, bukan cuma id mentah
+    L.ganti = { pu_a1: ALT['pu_a1'][0].id };
+    const altId = ALT['pu_a1'][0].id;
+    L.sesi.push({ id:'s7', d:'2026-02-03', sid:'push', ceklis:{}, set:{ [altId]:[{kg:40,rep:8}] } });
+    L.sesi.push({ id:'s8', d:'2026-02-10', sid:'push', ceklis:{}, set:{ [altId]:[{kg:45,rep:8}] } });
+    hasil.namaAlt = (gerakanBerprogres().find(g => g.exId === altId) || {}).nama;
+
+    L.sesi = simpan; L.ganti = {};
+    return hasil;
+  });
+  t.eq(progres.jumlahTitik, 3, 'satu titik per sesi, sesi tanpa angka sah nggak kehitung');
+  t.eq(progres.tanggal, ['2026-01-01','2026-01-08','2026-01-15'], 'titiknya urut dari tanggal paling lama');
+  t.eq(progres.setTerbaik, { kg:65, rep:6 }, 'set terbaik sehari dipilih dari perkiraan 1RM, bukan kg paling gede');
+  t.ok(progres.turun, '60kg x 10 -> 70kg x 3 dibaca TURUN, bukan naik — rep ikut dihitung');
+  t.ok(!progres.repGila, 'set di atas 12 rep dibuang, bukan dipaksain masuk rumus');
+  t.eq(progres.namaKepakai, 'Bench press', 'gerakan bawaan kebaca namanya');
+  t.ok(!progres.sekaliDoang, 'gerakan yang baru sekali kecatat belum digambar');
+  t.ok(!progres.kosong, 'set kosong nggak bikin gerakan nongol di daftar');
+  t.ok(/Incline barbell press/i.test(progres.namaAlt || ''), 'gerakan pengganti kebaca namanya juga, bukan id mentah');
+
   // ---------- gerakan pengganti ----------
   // Aturan yang sama kayak PROGRAM dipakai juga ke katalog pengganti. Kalau nggak,
   // ganti gerakan jadi pintu belakang buat masukin gerakan tanpa petunjuk teknik.

@@ -385,6 +385,45 @@ function volumeAngkat(d){
   return sum(s, x => sum(Object.values(x.set||{}), arr => sum(arr, st => (+st.kg||0) * (+st.rep||0))));
 }
 function volumeMinggu(){ return sum(mingguIni(), volumeAngkat); }
+/* Perkiraan 1RM (Epley). Dipakai, bukan "kg terberat", karena rep ikut berubah:
+   60kg x 8 itu lebih berat dari 70kg x 3, dan grafik yang cuma baca kg bakal
+   bilang naik padahal turun. Rumusnya kasar di atas ~10 rep — di situ yang
+   kelatih daya tahan, bukan kekuatan maksimal.
+   shortcut: set di atas 12 rep dibuang dari grafik, bukan dikoreksi. Kalau nanti
+   ada blok rep tinggi yang serius, ganti ke rumus yang lebih cocok (Brzycki). */
+const epley = (kg, rep) => kg * (1 + rep / 30);
+
+/* Satu titik per sesi per gerakan: set terbaik hari itu. */
+function progresiGerakan(exId){
+  const titik = [];
+  LT().sesi.forEach(s => {
+    let best = null;
+    (s.set?.[exId] || []).forEach(v => {
+      const kg = +v.kg || 0, rep = +v.rep || 0;
+      if (!kg || !rep || rep > 12) return;
+      const e = epley(kg, rep);
+      if (!best || e > best.e) best = { e, kg, rep };
+    });
+    if (best) titik.push({ d: s.d, ...best });
+  });
+  return titik.sort((a, b) => a.d < b.d ? -1 : 1);
+}
+
+/* Gerakan yang punya cukup data buat digambar, yang paling sering duluan. */
+function gerakanBerprogres(minTitik = 2){
+  const id = new Set();
+  LT().sesi.forEach(s => Object.keys(s.set || {}).forEach(k => id.add(k)));
+  return [...id]
+    .map(exId => {
+      const t = progresiGerakan(exId);
+      const nama = SLOT[exId] ? SLOT[exId].ex.n
+        : (Object.values(ALT).flat().find(g => g.id === exId) || {}).n || exId;
+      return { exId, nama, titik: t };
+    })
+    .filter(x => x.titik.length >= minTitik)
+    .sort((a, b) => b.titik.length - a.titik.length);
+}
+
 function sesiTerakhir(n=5){
   return [...LT().sesi].filter(s=>sesiKelar(s)>0).sort((a,b)=>a.d<b.d?1:-1).slice(0,n);
 }
@@ -476,6 +515,31 @@ function renderLatihan(){
         <span class="dim" style="font-size:18px">›</span>
       </div>
     </button>`).join('')}</div>
+
+  ${(()=>{
+    const prog = gerakanBerprogres();
+    if (!prog.length) return `<div class="sect"><h2>Progres beban</h2></div>
+      <div class="card"><div class="empty"><b>Belum cukup data</b>Catat kg &times; rep di dua sesi buat gerakan yang sama, grafiknya muncul sendiri.</div></div>`;
+    return `<div class="sect"><h2>Progres beban</h2><span class="link dim">${prog.length} gerakan</span></div>
+    ${prog.slice(0, 8).map(g=>{
+      const awal = g.titik[0], akhir = g.titik.at(-1);
+      const naik = akhir.e - awal.e;
+      const persen = awal.e ? naik / awal.e * 100 : 0;
+      const warna = naik > 0.5 ? '--c-ok' : naik < -0.5 ? '--c-bad' : '--text-2';
+      return `<div class="card" style="margin-bottom:11px">
+        <div class="row between" style="align-items:flex-start;margin-bottom:4px">
+          <div class="grow"><div class="sm" style="font-weight:700">${esc(g.nama)}</div>
+            <div class="xs dim">${g.titik.length} sesi &middot; terakhir ${akhir.kg}kg &times; ${akhir.rep}</div></div>
+          <div style="text-align:right">
+            <div class="mid tnum" style="color:var(${warna})">${naik>=0?'+':'&minus;'}${Math.abs(naik).toFixed(1)}<span style="font-size:12px"> kg</span></div>
+            <div class="xs dim tnum">${persen>=0?'+':'&minus;'}${Math.abs(persen).toFixed(0)}%</div>
+          </div>
+        </div>
+        ${areaChart(g.titik.map(t=>({ l: tgl(t.d), v: +t.e.toFixed(1) })), { h:92, color:warna, fmtY:v=>Math.round(v)+'kg' })}
+      </div>`;
+    }).join('')}
+    <div class="xs dim" style="margin:-2px 0 4px">Angkanya perkiraan 1RM dari set terbaik tiap sesi, jadi naik-turun rep ikut kehitung. Set di atas 12 rep nggak dipakai.</div>`;
+  })()}
 
   <div class="sect"><h2>Riwayat & saran</h2></div>
   <button class="btn ghost block sm" id="saranLatihan" style="margin-bottom:12px">✦ Minta saran dari asisten</button>
