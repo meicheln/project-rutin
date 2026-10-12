@@ -163,6 +163,7 @@ function seed(){
       asupan: {},        // 'YYYY-MM-DD': {kcal, air}
     },
     ide: [],             // {id,judul,platform,st,hook,isi,tag,dl,created}
+    target: [],          // {id,jenis,judul,nilai,ex,cat,mulai,tenggat,beres} — progresnya DIHITUNG, nggak disimpen
     aiChat: [],          // riwayat obrolan asisten, dipotong di BATAS_CHAT
     latihan: null,       // diisi LT() pas pertama dipakai (butuh PROGRAM yang dimuat belakangan)
   };

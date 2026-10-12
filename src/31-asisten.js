@@ -229,6 +229,21 @@ const AI_TOOLS = [
       jadi:{type:'string', description:'Nama gerakan penggantinya. Kosongin atau tulis "bawaan" buat balik ke gerakan asli program.'}
     }, required:['gerakan'] } },
 
+  { name:'pasang_target', description:'Pasang target pribadi. Progresnya dihitung otomatis dari data yang udah ada, jadi nggak perlu diisi ulang. Buat jenis "beban", panggil baca_latihan dulu biar tahu nama gerakan yang ada.',
+    input_schema:{ type:'object', properties:{
+      jenis:{type:'string', enum:['beban','nabung','batas','rutin','berat'],
+             description:'beban = perkiraan 1RM satu gerakan naik sampai sekian kg. nabung = masuk dikurangi keluar sejak tanggal mulai. batas = pengeluaran per bulan jangan lewat sekian. rutin = sesi latihan kelar per minggu. berat = berat badan sampai sekian kg.'},
+      nilai:{type:'number', description:'Angka targetnya. kg buat beban/berat, rupiah buat nabung/batas, jumlah sesi buat rutin.'},
+      gerakan:{type:'string', description:'Cuma buat jenis "beban": nama gerakannya, dicocokkan dari namanya.'},
+      kategori:{type:'string', description:'Cuma buat jenis "batas": kategori pengeluaran. Kosongin buat semua pengeluaran.'},
+      nama:{type:'string', description:'Nama target, boleh kosong.'},
+      mulai:{type:'string', description:'YYYY-MM-DD, titik awal pengukuran. Default hari ini.'},
+      tenggat:{type:'string', description:'YYYY-MM-DD, boleh kosong.'}
+    }, required:['jenis','nilai'] } },
+
+  { name:'baca_target', description:'Baca semua target beserta progres terkini yang dihitung dari data: posisi sekarang, titik awal, persen, dan di jalur atau ketinggalan.',
+    input_schema:{ type:'object', properties:{} } },
+
   { name:'baca_data', description:'Baca data detail dari aplikasi buat menjawab pertanyaan atau bikin analisis.',
     input_schema:{ type:'object', properties:{
       bagian:{type:'string', enum:['uang','harian','skripsi','kerja','badan','ide','semua']},
@@ -267,6 +282,39 @@ const AI_RUN = {
     if (!t) return `Nggak nemu tugas terbuka yang cocok sama "${a.judul}".`;
     t.done = true; t.doneAt = today();
     return `Tugas "${t.t}" ditandai kelar.`;
+  },
+  pasang_target(a){
+    if (!T_JENIS[a.jenis]) return `Jenis target "${a.jenis}" nggak ada. Yang bisa: ${Object.keys(T_JENIS).join(', ')}.`;
+    const nilai = +a.nilai || 0;
+    if (!nilai) return 'Angka targetnya belum jelas, jadi belum gua pasang.';
+    const o = { id:uid(), jenis:a.jenis, nilai, judul:(a.nama||'').trim(), ex:'', cat:'',
+                mulai: a.jenis==='batas'||a.jenis==='rutin' ? '' : tgOr(a.mulai),
+                tenggat: a.jenis==='batas'||a.jenis==='rutin' ? '' : (a.tenggat||''), beres:false };
+    if (a.jenis === 'beban'){
+      const g = cocok(pilihanTargetBeban(), a.gerakan, 'n');
+      if (!g) return `Nggak nemu gerakan berbeban yang cocok sama "${a.gerakan||''}". Panggil baca_latihan dulu buat lihat daftarnya.`;
+      o.ex = g.id; if (!o.judul) o.judul = g.n + ' ' + nilai + ' kg';
+    }
+    if (a.jenis === 'batas' && a.kategori) o.cat = KAT_OUT.includes(a.kategori) ? a.kategori : '';
+    S.target = S.target || []; S.target.push(o);
+    const r = majuTarget(o);
+    return `Target "${o.judul || T_JENIS[o.jenis].n}" dipasang: ${nilaiTarget(o.jenis, nilai)}. ` +
+           (r && r.kini !== null
+             ? `Posisi sekarang ${nilaiTarget(o.jenis, r.kini)} (${Math.round(r.persen*100)}%).`
+             : `Belum ada datanya buat dihitung — ${r ? r.info : 'belum kecatat'}.`);
+  },
+  baca_target(){
+    const list = targetAktif();
+    if (!list.length) return 'Belum ada target yang dipasang.';
+    return JSON.stringify(list.map(g => {
+      const r = majuTarget(g), l = r ? lajuTarget(g, r) : null;
+      return { nama: g.judul || (r ? r.J.n : g.jenis), jenis: g.jenis,
+               target: g.nilai, sekarang: r ? r.kini : null, titik_awal: r ? r.awal : null,
+               persen: r ? Math.round(r.persen*100) : null, status: r ? r.status : 'kosong',
+               catatan: r ? r.info : '', tenggat: g.tenggat || null,
+               porsi_waktu_kepakai: l ? Math.round(l.porsi*100) : null,
+               ketinggalan: l ? l.ketinggalan : null };
+    }));
   },
   catat_jam_kerja(a){
     S.workLogs.push({ id:uid(), d:tgOr(a.tanggal), jam:+a.jam, proj:(a.proyek||'').trim(), note:(a.catatan||'').trim() });
@@ -536,6 +584,9 @@ function aiSnapshot(){
                bab:S.skripsi.bab.map(b=>`${b.n} ${b.p}% (${BAB_ST[b.st].n})`) },
     tugas_terbuka: S.tasks.filter(t=>!t.done).map(t=>`${t.t}${t.due?' — '+t.due:''}`),
     berat_terakhir: lastWeight() ? lastWeight().kg : null,
+    // ringkas aja — baca_target yang kasih angka lengkapnya
+    target: targetAktif().map(g => { const r = majuTarget(g);
+      return `${g.judul || (r?r.J.n:g.jenis)}: ${r&&r.kini!==null?Math.round(r.persen*100)+'%':'belum ada data'} (${r?r.status:'?'})`; }),
     ide_aktif: S.ide.filter(i=>i.st!=='tayang').length,
     latihan_hari_ini: sesiHari(d).map(sid => PROGRAM[sid] ? PROGRAM[sid].n : sid),
     agenda_hari_ini: agendaHari(d).map(a => `${a.mulai?a.mulai+'–'+a.selesai:'tanpa jam'} ${a.judul}`),
@@ -570,6 +621,7 @@ Aturan:
 - Tanggal relatif: hitung dari hari ini. "kemarin", "senin lalu", "besok" — ubah jadi YYYY-MM-DD.
 - Kalau info wajibnya kurang dan nggak bisa ditebak masuk akal, tanya satu pertanyaan pendek. Kalau bisa ditebak, tebak aja dan sebutkan tebakanmu.
 - Buat pertanyaan analisis ("bulan ini boros di mana?", "gimana progres skripsi gua?"), pakai baca_data dulu baru jawab dengan angka konkret.
+- Soal target: progresnya diukur dari TITIK AWAL dia, bukan dari nol. Jangan bilang "udah 87%" cuma karena 70 dari 80 — panggil baca_target dan pakai persen yang di situ. Kalau ketinggalan dari jadwal, bilang terus terang sekalian sebutin angkanya.
 - Bedain rencana sama catatan: "besok jam 9 ada bimbingan" itu tambah_agenda, "tadi pagi 2 jam ngerjain BAB III" itu catat_blok_waktu. Kalau ditanya soal bocornya waktu, panggil baca_agenda dulu.
 - Setelah nyatat, konfirmasi dalam satu kalimat. Jangan ngulang seluruh isi datanya.
 - Kalau mau ngasih saran, baca datanya dulu. Saran umum yang bisa ditulis siapa

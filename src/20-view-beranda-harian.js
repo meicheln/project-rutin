@@ -160,6 +160,8 @@ function renderHome(){
       <div style="margin-top:14px"><button class="btn sm" data-sheet="agenda">Tambah agenda</button></div></div>`}
   </div>
 
+  ${blokTarget()}
+
   <div class="sect"><h2>Bulan ini</h2><span class="link" data-go="money">Detail →</span></div>
   <div class="card">
     <div class="row between" style="align-items:flex-start">

@@ -212,6 +212,62 @@ function sheetAgenda(existing){
   };
 }
 
+function sheetTarget(existing){
+  const e = existing || {};
+  // cadangan yang diedit tangan bisa bawa jenis yang nggak ada — jangan nabrak
+  const j = T_JENIS[e.jenis] ? e.jenis : 'beban';
+  const ex = pilihanTargetBeban();
+  const satuan = x => T_JENIS[x] ? (T_JENIS[x].sat === 'rp' ? 'Rp' : T_JENIS[x].sat) : '';
+  // batas selalu dihitung per bulan berjalan, rutin selalu per minggu ini —
+  // tanggal mulai/tenggat nggak ada artinya di dua jenis itu
+  const adaTanggal = x => x !== 'batas' && x !== 'rutin';
+
+  form(existing ? 'Ubah target' : 'Target baru',
+    'Angkanya dihitung sendiri dari catatan lo',
+    F.sel('tgJenis','Jenis', Object.entries(T_JENIS).map(([k,v])=>[k, v.ic+' '+v.n]), j) +
+    `<div class="xs dim" id="tgSub" style="margin:-6px 2px 2px">${esc(T_JENIS[j].sub)}</div>` +
+    `<div class="field" id="tgExW"${j!=='beban'?' style="display:none"':''}><label>Gerakan</label>
+      <select class="inp" id="tgEx">${ex.length
+        ? ex.map(x=>`<option value="${x.id}"${x.id===e.ex?' selected':''}>${esc(x.n)}</option>`).join('')
+        : `<option value="">(belum ada gerakan berbeban di program)</option>`}</select></div>` +
+    `<div class="field" id="tgCatW"${j!=='batas'?' style="display:none"':''}><label>Kategori</label>
+      <select class="inp" id="tgCat"><option value="">Semua pengeluaran</option>
+        ${CAT_OUT.map(c=>`<option value="${c.id}"${c.id===e.cat?' selected':''}>${c.ic} ${esc(c.n)}</option>`).join('')}</select></div>` +
+    F.num('tgNilai','Target ('+satuan(j)+')', e.nilai, '', 'any') +
+    F.text('tgJudul','Nama target (boleh kosong)', e.judul, 'Kasih nama sendiri') +
+    // dua input tanggal nggak muat berdampingan di layar 375px — ditumpuk, bukan digrid
+    `<div id="tgTglW"${!adaTanggal(j)?' style="display:none"':''}>` +
+      F.date('tgMulai','Mulai hitung dari', e.mulai || today()) +
+      F.date('tgTenggat','Tenggat (boleh kosong)', e.tenggat) +
+    `</div>`,
+    ()=>{
+      const jn = val('tgJenis'), nilai = numv('tgNilai');
+      if (!nilai){ $('#tgNilai').classList.add('shake'); setTimeout(()=>$('#tgNilai').classList.remove('shake'),400); return false; }
+      if (jn === 'beban' && !val('tgEx')){ toast('Pilih gerakannya dulu'); return false; }
+      const o = { id: e.id || uid(), jenis: jn, nilai,
+                  judul: val('tgJudul').trim(),
+                  ex:  jn === 'beban' ? val('tgEx')  : '',
+                  cat: jn === 'batas' ? val('tgCat') : '',
+                  mulai:   adaTanggal(jn) ? (val('tgMulai') || today()) : '',
+                  tenggat: adaTanggal(jn) ? val('tgTenggat') : '',
+                  beres: !!e.beres };
+      S.target = S.target || [];
+      const i = S.target.findIndex(x => x.id === o.id);
+      if (i >= 0) S.target[i] = o; else S.target.push(o);
+      commit(); toast(existing ? 'Target diperbarui' : 'Target dipasang'); buzz(12);
+    },
+    existing ? ()=>{ S.target = (S.target||[]).filter(x => x.id !== e.id); commit(); toast('Target dihapus'); } : null);
+
+  $('#tgJenis').onchange = ()=>{
+    const x = val('tgJenis');
+    $('#tgSub').textContent = T_JENIS[x].sub;
+    $('#tgExW').style.display  = x === 'beban' ? '' : 'none';
+    $('#tgCatW').style.display = x === 'batas' ? '' : 'none';
+    $('#tgTglW').style.display = adaTanggal(x) ? '' : 'none';
+    $('#tgNilai').closest('.field').querySelector('label').textContent = 'Target (' + satuan(x) + ')';
+  };
+}
+
 function sheetRoutines(){
   const tags = [['pagi','Pagi'],['badan','Badan'],['fokus','Fokus'],['malam','Malam']];
   sheetSaveFn = null; sheetDelFn = null;
@@ -585,7 +641,7 @@ const SHEETS = {
   idea:()=>sheetIdea(), berat:sheetBerat, kalori:sheetKalori, latihan:()=>sheetLatihan(),
   block:()=>sheetBlock(), routines:sheetRoutines, settings:sheetSettings, agenda:()=>sheetAgenda(),
   skripsiInfo:sheetSkripsiInfo, babAdd:()=>sheetBab(), bimbingan:()=>sheetBimbingan(),
-  quick:sheetQuick,
+  quick:sheetQuick, target:()=>sheetTarget(),
   jadwalLatihan:sheetJadwalLatihan,
   asisten:()=>{ closeSheetSilent(); setTimeout(openAI, 120); },
   latihanHariIni:()=>{ closeSheetSilent(); const h = sesiHari(today()); if (h.length) setTimeout(()=>bukaSesi(h[0]), 120); },
@@ -595,7 +651,7 @@ const SHEETS = {
 
 /* ---------- delegasi event ---------- */
 document.addEventListener('click', ev => {
-  const t = ev.target.closest('[data-go],[data-sheet],[data-rt],[data-mood],[data-energi],[data-air],[data-tx],[data-task],[data-taskedit],[data-bab],[data-bimb],[data-idea],[data-lat],[data-wlog],[data-block],[data-agenda],[data-csv],[data-mfilter],[data-kfilter],[data-ifilter],[data-chip],[data-edit]');
+  const t = ev.target.closest('[data-go],[data-sheet],[data-rt],[data-mood],[data-energi],[data-air],[data-tx],[data-task],[data-taskedit],[data-bab],[data-bimb],[data-idea],[data-lat],[data-wlog],[data-block],[data-agenda],[data-target],[data-csv],[data-mfilter],[data-kfilter],[data-ifilter],[data-chip],[data-edit]');
   if (!t) return;
   const d = t.dataset;
 
@@ -622,6 +678,7 @@ document.addEventListener('click', ev => {
   if (d.idea){ const x = S.ide.find(v=>v.id===d.idea); x && sheetIdea(x); return; }
   if (d.lat){ const x = S.badan.latihan.find(v=>v.id===d.lat); x && sheetLatihan(x); return; }
   if (d.wlog){ const x = S.workLogs.find(v=>v.id===d.wlog); x && sheetJam(x); return; }
+  if (d.target){ const x = (S.target||[]).find(v=>v.id===d.target); x && sheetTarget(x); return; }
   if (d.block){ const x = (dayRO(dayCur).blocks||[]).find(v=>v.id===d.block); x && sheetBlock(x); return; }
   if (d.csv){
     const isi = laporanCSV()[d.csv];

@@ -118,6 +118,105 @@ export async function jalan(t) {
   t.eq(ide.st, 'konsep', 'status ide kesimpan');
   t.eq(ide.platform, 'TikTok', 'platform ide kesimpan');
 
+  // ---------- target ----------
+  const tg = await page.evaluate(() => {
+    const simpanSesi = LT().sesi, simpanTx = S.txns, simpanBerat = S.badan.berat;
+    const h = {};
+
+    // beban: titik awal 60kg x 10 (1RM 80), sekarang 65kg x 8 (1RM ~82,3), target 90
+    LT().sesi = [
+      { id:'t1', d:'2026-01-05', sid:'push', ceklis:{}, set:{ pu_m1:[{kg:60,rep:10}] } },
+      { id:'t2', d:'2026-02-05', sid:'push', ceklis:{}, set:{ pu_m1:[{kg:65,rep:8}] } },
+    ];
+    const gBeban = { id:'g1', jenis:'beban', ex:'pu_m1', nilai:90, mulai:'2026-01-01', tenggat:'' };
+    const rBeban = majuTarget(gBeban);
+    h.bebanPersen = Math.round(rBeban.persen * 100);
+    h.bebanAwal = Math.round(rBeban.awal);
+    h.bebanStatus = rBeban.status;
+    // diukur dari nol, 82/90 = 91%. diukur dari titik awal 80, cuma 23%.
+    h.bukanDariNol = h.bebanPersen < 40;
+
+    // target kelewat -> kena
+    h.kena = majuTarget({ ...gBeban, nilai:70 }).status;
+
+    // batas belanja dibalik: makin kecil makin bagus, lewat = merah
+    S.txns = [{ id:'x1', d:today(), type:'out', amt:300000, cat:'makan', note:'' }];
+    const rBatas = majuTarget({ id:'g2', jenis:'batas', cat:'makan', nilai:200000 });
+    h.batasStatus = rBatas.status;
+    h.batasPersen = Math.round(rBatas.persen * 100);
+    h.batasAman = majuTarget({ id:'g3', jenis:'batas', cat:'makan', nilai:500000 }).status;
+
+    // berat turun: awal 80, target 75, sekarang 76 -> 80% jalan
+    S.badan.berat = [{ d:'2026-01-01', kg:80 }, { d:'2026-02-01', kg:76 }];
+    const rBerat = majuTarget({ id:'g4', jenis:'berat', nilai:75, mulai:'2026-01-01', tenggat:'' });
+    h.beratPersen = Math.round(rBerat.persen * 100);
+    h.beratStatus = rBerat.status;
+
+    // data belum ada -> null, BUKAN nol persen
+    S.badan.berat = [];
+    const rKosong = majuTarget({ id:'g5', jenis:'berat', nilai:75, mulai:today(), tenggat:'' });
+    h.kosongKini = rKosong.kini;
+    h.kosongStatus = rKosong.status;
+
+    // tenggat kelewat sementara masih jalan -> telat
+    h.telat = majuTarget({ id:'g6', jenis:'beban', ex:'pu_m1', nilai:200,
+                           mulai:'2026-01-01', tenggat:'2026-01-02' }).status;
+
+    // jenis ngaco nggak bikin nabrak
+    h.ngaco = majuTarget({ id:'g7', jenis:'ngawur', nilai:10 });
+
+    LT().sesi = simpanSesi; S.txns = simpanTx; S.badan.berat = simpanBerat;
+    return h;
+  });
+  t.eq(tg.bebanAwal, 80, 'titik awal beban dari perkiraan 1RM set pertama');
+  t.ok(tg.bukanDariNol, `progres diukur dari titik awal, bukan dari nol (${tg.bebanPersen}%, bukan ~91%)`);
+  t.eq(tg.bebanStatus, 'jalan', 'target yang belum kesampe statusnya jalan');
+  t.eq(tg.kena, 'kena', 'target yang udah kelewat statusnya kena');
+  t.eq(tg.batasStatus, 'lewat', 'batas belanja yang kebobol statusnya lewat');
+  t.eq(tg.batasPersen, 150, 'batas belanja ngitung kuota kepakai, bukan jarak ke target');
+  t.eq(tg.batasAman, 'jalan', 'batas belanja yang masih aman statusnya jalan');
+  t.eq(tg.beratPersen, 80, 'berat turun kehitung bener walau arahnya kebalik');
+  t.eq(tg.beratStatus, 'jalan', 'berat yang belum nyampe target statusnya jalan');
+  t.eq(tg.kosongKini, null, 'data yang belum ada dibaca null, bukan 0 — biar nggak digambar 0%');
+  t.eq(tg.kosongStatus, 'kosong', 'target tanpa data statusnya kosong');
+  t.eq(tg.telat, 'telat', 'tenggat yang udah lewat sementara belum kena = telat');
+  t.eq(tg.ngaco, null, 'jenis target yang nggak dikenal balik null, nggak nabrak');
+
+  // --- target lewat UI, kesimpan dan kebaca asisten ---
+  await nav('home'); await page.waitForTimeout(400);
+  await page.click('#homeBody .sect [data-sheet="target"]'); await page.waitForTimeout(400);
+  await page.selectOption('#tgJenis', 'nabung'); await page.waitForTimeout(250);
+  await page.fill('#tgNilai', '5000000');
+  await page.fill('#tgJudul', 'Nabung buat laptop');
+  await page.click('#sheetSave'); await page.waitForTimeout(500);
+  const tgUi = await page.evaluate(() => ({
+    jumlah: (S.target || []).length,
+    jenis: S.target[0].jenis,
+    nilai: S.target[0].nilai,
+    adaMulai: !!S.target[0].mulai,
+    dariAsisten: AI_RUN.baca_target(),
+    diBeranda: document.getElementById('homeBody').innerHTML.includes('Nabung buat laptop'),
+  }));
+  t.eq(tgUi.jumlah, 1, 'target kesimpan lewat form');
+  t.eq(tgUi.jenis, 'nabung', 'jenis target kepilih dari dropdown');
+  t.eq(tgUi.nilai, 5000000, 'angka target kesimpan');
+  t.ok(tgUi.adaMulai, 'tanggal mulai keisi otomatis — tanpa itu titik awalnya nggak kebaca');
+  t.ok(tgUi.diBeranda, 'target nongol di beranda');
+  t.ok(/Nabung buat laptop/.test(tgUi.dariAsisten), 'asisten bisa baca target lewat baca_target');
+
+  // batas belanja nggak minta tanggal — jendelanya selalu bulan berjalan
+  await page.click('#homeBody .sect [data-sheet="target"]'); await page.waitForTimeout(400);
+  await page.selectOption('#tgJenis', 'batas'); await page.waitForTimeout(250);
+  const tglSembunyi = await page.evaluate(() => ({
+    tgl: getComputedStyle(document.getElementById('tgTglW')).display,
+    kat: getComputedStyle(document.getElementById('tgCatW')).display,
+    ex:  getComputedStyle(document.getElementById('tgExW')).display,
+  }));
+  t.eq(tglSembunyi.tgl, 'none', 'batas belanja nggak nanyain tanggal mulai/tenggat');
+  t.ok(tglSembunyi.kat !== 'none', 'batas belanja nanyain kategori');
+  t.eq(tglSembunyi.ex, 'none', 'pilihan gerakan disembunyiin buat jenis selain beban');
+  await page.evaluate(() => closeSheet()); await page.waitForTimeout(400);
+
   // --- tetap ada setelah muat ulang ---
   await page.reload(); await page.waitForTimeout(1200);
   const pulih = await page.evaluate(() => ({
