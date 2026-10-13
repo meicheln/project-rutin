@@ -87,10 +87,24 @@ export async function jalan(t) {
   const latihan = await page.evaluate(() => window.__nat.notif.filter(n => n.id >= 210 && n.id < 300)
     .map(n => ({ w: n.schedule.on.weekday, jam: n.schedule.on.hour + ':' + String(n.schedule.on.minute).padStart(2, '0'),
       judul: n.title, ulang: n.schedule.repeats })));
-  t.eq(latihan.length, 6, 'enam hari latihan dapat pengingat, hari libur nggak');
+  t.eq(latihan.length, 5, 'lima hari latihan dapat pengingat, dua hari libur nggak');
   t.ok(latihan.every(n => n.jam === '6:15'), 'semua pengingat latihan di jam yang diatur');
   t.ok(latihan.every(n => n.ulang), 'pengingat latihan diulang mingguan');
-  t.ok(latihan.some(n => /Basket A \+ Push/.test(n.judul)), 'hari gabungan nyebut dua sesi sekaligus');
+  // jadwal bodybuilding nggak punya hari gabungan, tapi logikanya masih ada —
+  // dipasang sendiri di sini biar tetep kejaga, lalu dibalikin seperti semula
+  const gabung = await page.evaluate(async () => {
+    const simpanNotif = window.__nat.notif.slice();
+    const simpanJad = JSON.parse(JSON.stringify(LT().jadwal));
+    LT().jadwal[4] = ['pull', 'upper'];
+    window.__nat.notif.length = 0;
+    await Notif.apply();
+    const judul = window.__nat.notif.filter(x => x.id >= 210 && x.id < 300).map(x => x.title);
+    LT().jadwal = simpanJad;
+    window.__nat.notif.length = 0;
+    simpanNotif.forEach(x => window.__nat.notif.push(x));
+    return judul;
+  });
+  t.ok(gabung.some(j => /Pull/.test(j) && /Upper/.test(j)), 'hari yang isinya dua sesi nyebut dua-duanya');
   t.ok(latihan.every(n => n.w >= 1 && n.w <= 7), 'nomor hari dalam rentang yang dipahami Android (1-7)');
   t.eq(await page.evaluate(() => window.__nat.notif.filter(n => n.id < 200).length), 2,
     'pengingat harian nggak keilangan waktu pengingat latihan ditambah');

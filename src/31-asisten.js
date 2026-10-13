@@ -498,7 +498,8 @@ const AI_RUN = {
         perubahan_1rm_kg:+(g.titik.at(-1).e - g.titik[0].e).toFixed(1) })),
       catatan_progres:'perubahan_1rm_kg dari perkiraan Epley set terbaik tiap sesi. Angka mendekati nol berarti mandek — itu yang perlu disebut, bukan dilewat.',
       minggu_ini: { volume_angkat_kg: Math.round(volumeMinggu()),
-        kontak_lompatan: Math.round(kontakMinggu()), batas_kontak: KONTAK_CAP },
+        kontak_lompatan: Math.round(kontakMinggu()), batas_kontak: KONTAK_CAP,
+        set_per_otot_minggu_ini: setPerOtot(), sasaran_set_per_otot: SET_MIN + '-' + SET_MAX },
       aturan: 'Hari lower sengaja dipisah dari basket. Batas kontak lompatan 200 per minggu buat level lanjut. Sesi gym maksimal 90 menit, basket maksimal 120 menit.',
       riwayat
     });
@@ -513,7 +514,9 @@ const AI_RUN = {
       s.dicatat = true;
       S.badan.latihan.push({ id:uid(), d, jenis:p.n.split(' — ')[0], menit:p.menit, note:(a.catatan||'').slice(0,80) });
     }
-    return `Sesi ${p.n} tanggal ${d} ditandai selesai${a.catatan?', catatan tersimpan':''}. Kontak lompatan minggu ini jadi ${Math.round(kontakMinggu())}/${KONTAK_CAP}.`;
+    const so = setPerOtot(), ringkas = OTOT.filter(([k])=>so[k]).map(([k,nm])=>`${nm} ${so[k]}`).join(', ');
+    return `Sesi ${p.n} tanggal ${d} ditandai selesai${a.catatan?', catatan tersimpan':''}.` +
+           (ringkas ? ` Set minggu ini: ${ringkas}.` : '');
   },
   ubah_jadwal_latihan(a){
     const hariNama = ['minggu','senin','selasa','rabu','kamis','jumat','sabtu'];
@@ -590,7 +593,7 @@ function aiSnapshot(){
     ide_aktif: S.ide.filter(i=>i.st!=='tayang').length,
     latihan_hari_ini: sesiHari(d).map(sid => PROGRAM[sid] ? PROGRAM[sid].n : sid),
     agenda_hari_ini: agendaHari(d).map(a => `${a.mulai?a.mulai+'–'+a.selesai:'tanpa jam'} ${a.judul}`),
-    kontak_lompatan_minggu_ini: Math.round(kontakMinggu()) + '/' + KONTAK_CAP,
+    set_per_otot_minggu_ini: setPerOtot(), sasaran_set_per_otot: SET_MIN + '-' + SET_MAX,
     kategori_pengeluaran: KAT_OUT, kategori_pemasukan: KAT_IN, kategori_kegiatan: KAT_ACT
   });
 }
@@ -631,10 +634,16 @@ Aturan:
   dua arah, bukan lo nembak perintah dan dia nurut.
 - Jangan bikin janji soal notifikasi, backup, atau hal di luar alat yang kamu punya.
 
-Soal latihan: penggunanya pemain basket level lanjut yang lagi ngejar vertical jump, gym alat lengkap.
+Soal latihan: penggunanya lagi fokus BODYBUILDING (ngegedein otot), gym alat lengkap.
+Program sekarang 5 hari: Push, Pull, Leg A (paha depan), Upper, Leg B (hamstring/glute/betis).
+Sesi lompat dan basket masih ada di aplikasi tapi lagi nggak dijadwalin — jangan disaranin
+balik ke situ kecuali dia sendiri yang minta.
 Kalau dia minta saran latihan, panggil baca_latihan dulu — baca catatan kekurangannya, lalu kasih saran
-yang nyebut gerakan dan angka spesifik. Pegang aturan ini: hari lower jangan digabung sama basket,
-gym maksimal 90 menit, basket maksimal 120 menit, kontak lompatan maksimal 200 per minggu.
+yang nyebut gerakan dan angka spesifik. Pegang aturan ini: sasaran 10-20 set kerja per kelompok otot
+per minggu — di bawah 10 rangsangannya kurang, di atas 20 tambahannya kecil sementara capek dan
+risiko sendi terus naik. Rentang rep buat ngegedein 6-15, sisain 1-2 rep di tangki, jangan tiap set
+sampai gagal angkat. Gym maksimal 90 menit. Kalau dia balik ngejadwalin sesi lompat atau basket,
+kontak lompatan maksimal 200 per minggu dan hari lower jangan digabung sama basket.
 Kalau dia ngeluh nyeri sendi atau tanda cedera, saranin kurangi beban/kontak dan ketemu tenaga medis —
 jangan sok mendiagnosis.
 

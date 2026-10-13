@@ -6,7 +6,8 @@
   "type": "module",
   "scripts": {
     "build": "node build.mjs --check",
-    "test": "npm run build && node tests/jalan.mjs",
+    "test": "npm run build && node tools/buat-dok-latihan.mjs --cek && node tests/jalan.mjs",
+    "dok:latihan": "node tools/buat-dok-latihan.mjs",
     "ikon": "python3 tools/buat-ikon.py",
     "android:siapkan": "node tools/android.mjs siapkan",
     "android:build": "node tools/android.mjs build",

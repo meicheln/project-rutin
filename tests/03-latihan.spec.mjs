@@ -34,7 +34,7 @@ export async function jalan(t) {
     t.ok(!p.idDobel, `${p.id}: nggak ada id gerakan yang kembar`);
     t.eq(p.setTakSah, 0, `${p.id}: semua gerakan punya set & rep yang sah`);
   }
-  t.eq(prog.length, 8, 'ada 8 sesi di katalog');
+  t.eq(prog.length, 9, 'ada 9 sesi di katalog');
 
   // ---------- aturan jadwal ----------
   const jad = await page.evaluate(() => {
@@ -51,9 +51,11 @@ export async function jalan(t) {
   });
   t.eq(jad.langgar, [], 'nggak ada hari yang nggabungin lower sama basket');
   t.eq(jad.gym, 5, '5 sesi gym seminggu');
-  t.ok(jad.basket >= 2 && jad.basket <= 3, `sesi basket ${jad.basket}, masih di rentang 2-3`);
+  t.eq(jad.basket, 0, 'program bodybuilding: nggak ada sesi basket yang dijadwalin');
+  t.ok(prog.some(p => p.id === 'basketA') && prog.some(p => p.id === 'lowerA'),
+    'sesi basket & lompat tetep ada di katalog walau nggak dijadwalin — biar gampang dibalikin');
   t.ok(jad.kontak <= jad.cap, `kontak lompatan seminggu ${jad.kontak} nggak lewat batas ${jad.cap}`);
-  t.ok(jad.kontak >= jad.cap * 0.35, `kontak ${jad.kontak} cukup buat ngasih rangsangan (nggak kekecilan)`);
+  t.eq(jad.kontak, 0, 'nol kontak plyo terjadwal, jadi rem lompatan nggak ikut ngitung');
 
   // ---------- buka sesi & isi ----------
   await page.click('nav .tab[data-go="prog"]'); await page.waitForTimeout(500);
@@ -90,6 +92,71 @@ export async function jalan(t) {
   const log = await page.evaluate(() => logSesi(today(), 'lowerA'));
   t.ok(log.kurang.includes('lambat'), 'catatan kekurangan kesimpan');
   t.eq(log.rasa, 2, 'penilaian rasa kesimpan');
+
+  // ---------- pindah jadwal lompat -> bodybuilding ----------
+  const pindah = await page.evaluate(() => {
+    const simpan = JSON.parse(JSON.stringify(LT().jadwal));
+    const hasil = {};
+
+    // pengguna lama yang jadwalnya masih bawaan lama -> dipindahin
+    S.latihan.jadwal = JSON.parse(JSON.stringify(JADWAL_LOMPAT));
+    hasil.lama = JSON.stringify(LT().jadwal) === JSON.stringify(JADWAL_BAKU);
+
+    // jadwal yang pernah diatur sendiri -> JANGAN disentuh
+    const sendiri = { 0:[], 1:['push'], 2:[], 3:['pull'], 4:[], 5:['upper'], 6:[] };
+    S.latihan.jadwal = JSON.parse(JSON.stringify(sendiri));
+    hasil.sendiri = JSON.stringify(LT().jadwal) === JSON.stringify(sendiri);
+
+    // jadwal baru yang udah kepindah nggak dipindahin lagi (idempoten)
+    S.latihan.jadwal = JSON.parse(JSON.stringify(JADWAL_BAKU));
+    hasil.idempoten = JSON.stringify(LT().jadwal) === JSON.stringify(JADWAL_BAKU);
+
+    S.latihan.jadwal = simpan;
+    return hasil;
+  });
+  t.ok(pindah.lama, 'jadwal lompat bawaan kepindah sendiri ke jadwal bodybuilding');
+  t.ok(pindah.sendiri, 'jadwal yang diatur sendiri nggak ketimpa \u2014 itu keputusan, bukan setelan pabrik');
+  t.ok(pindah.idempoten, 'jadwal yang udah baru nggak diotak-atik lagi');
+
+  // ---------- set per kelompok otot ----------
+  const so = await page.evaluate(() => {
+    const L = LT(), simpan = L.sesi, simpanGanti = L.ganti;
+    const hariIni = today();
+    const centangSemua = sid => { const c = {};
+      sesi(sid).blok.forEach(b => b.ex.forEach(e => { c[e.id] = true; })); return c; };
+
+    L.ganti = {};
+    L.sesi = [{ id:'o1', d:hariIni, sid:'push', ceklis:centangSemua('push'), set:{} }];
+    const penuh = setPerOtot();
+
+    // cuma satu gerakan dicentang -> cuma set gerakan itu yang kehitung
+    L.sesi = [{ id:'o2', d:hariIni, sid:'push', ceklis:{ pu_a3:true }, set:{} }];
+    const sebagian = setPerOtot();
+
+    // sesi di luar minggu ini nggak boleh ikut
+    L.sesi = [{ id:'o3', d:'2026-01-01', sid:'push', ceklis:centangSemua('push'), set:{} }];
+    const mingguLain = setPerOtot();
+
+    // gerakan pengganti harus mewarisi kelompok otot slotnya
+    const altId = ALT['pu_a1'][0].id;
+    L.ganti = { pu_a1: altId };
+    L.sesi = [{ id:'o4', d:hariIni, sid:'push', ceklis:{ [altId]:true }, set:{} }];
+    const sesudahGanti = setPerOtot();
+    const ototAlt = gerakan('pu_a1').otot;
+
+    L.sesi = simpan; L.ganti = simpanGanti;
+    return { penuh, sebagian, mingguLain, sesudahGanti, ototAlt,
+             totalOtot: Object.keys(penuh).length };
+  });
+  t.ok(so.penuh.dada >= 10, `push penuh ngasih ${so.penuh.dada} set dada`);
+  t.ok(so.penuh.bahu >= 7, `push penuh ngasih ${so.penuh.bahu} set bahu`);
+  t.ok(so.penuh.trisep >= 7, `push penuh ngasih ${so.penuh.trisep} set trisep`);
+  t.ok(!so.penuh.hamstring, 'hari push nggak nambah set hamstring');
+  t.eq(so.sebagian, { bahu: 4 }, 'cuma gerakan yang dicentang yang kehitung');
+  t.eq(so.mingguLain, {}, 'sesi di luar minggu ini nggak ikut kehitung');
+  t.eq(so.ototAlt, 'dada', 'gerakan pengganti mewarisi kelompok otot slot bawaannya');
+  t.ok(so.sesudahGanti.dada > 0,
+    'set gerakan yang udah diganti tetep kehitung \u2014 kalau nggak, remnya ngelaporin angka kekecilan');
 
   // ---------- progres beban ----------
   const progres = await page.evaluate(() => {

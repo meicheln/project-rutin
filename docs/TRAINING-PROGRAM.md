@@ -1,13 +1,14 @@
-# Training Program — Vertical Jump & Basketball
+# Training Program
 
-> **Note:** this document is generated from the app's own `PROGRAM` constant by
-> `tools/`, so it can never drift from what the app actually shows. The exercise
-> names are standard English strength-training terms; the coaching cues are in
-> Indonesian because they are app content shown to the user.
+> **Jangan diedit tangan.** Berkas ini digenerate dari `PROGRAM` dan
+> `JADWAL_BAKU` di dalam kode oleh `tools/buat-dok-latihan.mjs`, jadi dia
+> nggak bisa beda dari yang aplikasinya beneran tampilin. Nama gerakan pakai
+> istilah baku bahasa Inggris; petunjuk tekniknya bahasa Indonesia karena itu
+> teks yang dibaca penggunanya.
 
-Disusun buat pemain basket level lanjut dengan akses gym lengkap. Lima sesi gym, dua sampai tiga sesi basket, dua hari libur.
+Fokus sekarang: **bodybuilding**. 5 sesi terjadwal, 2 hari libur.
 
-**Aturan yang dipegang:** hari lower nggak pernah digabung sama basket · sesi gym maksimal 90 menit · sesi basket maksimal 120 menit · total kontak lompatan intensitas tinggi maksimal 200 per minggu.
+**Rem yang dipegang:** 10–20 set kerja per kelompok otot per minggu · rentang rep 6–15 · sisain 1–2 rep di tangki, jangan tiap set sampai gagal angkat · sesi gym maksimal 90 menit.
 
 ---
 
@@ -15,22 +16,44 @@ Disusun buat pemain basket level lanjut dengan akses gym lengkap. Lima sesi gym,
 
 | Hari | Sesi | Durasi | Kontak lompatan |
 |---|---|---|---|
-| **Senin** | Lower A — Reaktif & Kecepatan | 85 mnt | 57 |
-| **Selasa** | Basket A — Shooting & Handling<br>Push — Dada, Bahu, Trisep | 185 mnt | 10 |
-| **Rabu** | Pull — Punggung & Bisep | 75 mnt | — |
-| **Kamis** | Lower B — Kekuatan & Tenaga | 88 mnt | 21 |
-| **Jumat** | Basket B — Finishing & Kombinasi<br>Upper — Gabungan Ringan | 185 mnt | 12 |
-| **Sabtu** | Basket C — Volume Shooting (opsional) | 80 mnt | — |
+| **Senin** | Push — Dada, Bahu, Trisep | 82 mnt | — |
+| **Selasa** | Pull — Punggung & Bisep | 82 mnt | — |
+| **Rabu** | Leg A — Kuadrisep & Squat | 80 mnt | — |
+| **Kamis** | Libur total | — | — |
+| **Jumat** | Upper — Putaran Kedua | 85 mnt | — |
+| **Sabtu** | Leg B — Hamstring, Glute & Betis | 78 mnt | — |
 | **Minggu** | Libur total | — | — |
-| | **Total** | **11.6 jam** | **100 / 200** |
+| | **Total** | **6,8 jam** | **—** |
 
-Selasa dan Jumat sengaja basket dulu baru angkat beban — skill dikerjain pas badan masih segar, dan angkat beban badan atas nggak ganggu lompatan besoknya. Senin dan Kamis murni gym supaya kaki dapat pemulihan penuh untuk sesi eksplosif.
+## Set kerja per kelompok otot
 
-Basket C hari Sabtu sifatnya opsional dan sengaja minim lompatan. Sisa jatah 100 kontak itu ruang buat main lepas atau pertandingan.
+Dihitung dari sesi yang terjadwal, kalau semua gerakannya dikerjain.
+
+| Otot | Set / minggu | |
+|---|---|---|
+| punggung | 20 | pas |
+| bahu | 19 | pas |
+| dada | 18 | pas |
+| glute | 18 | pas |
+| trisep | 13 | pas |
+| kuadrisep | 13 | pas |
+| perut | 10 | pas |
+| bisep | 10 | pas |
+| betis | 10 | pas |
+| hamstring | 10 | pas |
+
+## Sesi yang disimpan tapi nggak dijadwalin
+
+Masih ada di aplikasi dan bisa dipasang lagi lewat **Atur jadwal**.
+
+- **Lower A — Reaktif & Kecepatan** — gym, 85 menit
+- **Basket A — Shooting & Handling** — basket, 110 menit
+- **Basket B — Finishing & Kombinasi** — basket, 115 menit
+- **Basket C — Volume Shooting (opsional)** — basket, 80 menit
 
 ---
 
-## Lower A — Reaktif & Kecepatan
+## Lower A — Reaktif & Kecepatan *(nggak dijadwalin)*
 
 Gym · 85 menit
 
@@ -46,11 +69,11 @@ Detak jantung naik pelan, jangan sampai ngos-ngosan.
 
 Lutut maju lewat ujung jari kaki. Pergelangan kaki yang kaku bikin bocor tenaga pas take-off.
 
-**Glute bridge + monster walk band** — 2 set × 15 / 10 tiap arah · istirahat 30 dtk
+**Glute bridge + monster walk band** — 2 × 15 / 10 tiap arah · istirahat 30 dtk
 
 Rasain pantat yang kerja, bukan punggung bawah.
 
-**Pogo hop di tempat** — 2 set × 20 · istirahat 45 dtk
+**Pogo hop di tempat** — 2 × 20 · istirahat 45 dtk
 
 Lutut hampir lurus, mantul dari pergelangan kaki. Ini nyalain refleks pegas betis.
 
@@ -58,43 +81,43 @@ Lutut hampir lurus, mantul dari pergelangan kaki. Ini nyalain refleks pegas beti
 
 *45 kontak intensitas tinggi. Kualitas di atas jumlah — begitu tinggi lompatan turun, stop.*
 
-**Depth jump (box 40 cm)** — 4 set × 3 · istirahat 2,5 mnt · 12 kontak
+**Depth jump (box 40 cm)** — 4 × 3 · istirahat 2,5 mnt
 
 Melangkah turun dari box, jangan lompat turun. Begitu nyentuh lantai langsung meledak ke atas. Target waktu kontak di bawah 0,25 detik — kalau kerasa "mendarat lalu mikir", boxnya kerendahin dulu.
 
-**Hurdle hop berturut (5 gawang 30 cm)** — 3 set × 5 gawang · istirahat 2 mnt · 15 kontak
+**Hurdle hop berturut (5 gawang 30 cm)** — 3 × 5 gawang · istirahat 2 mnt
 
 Dua kaki, mendarat langsung mantul. Jangan berhenti antar gawang.
 
-**Broad jump → vertikal (kombinasi)** — 3 set × 3 · istirahat 2 mnt · 9 kontak
+**Broad jump → vertikal (kombinasi)** — 3 × 3 · istirahat 2 mnt
 
 Lompat jauh ke depan, mendarat, langsung sambung lompat setinggi mungkin.
 
-**Approach jump 2 langkah (kanan & kiri)** — 3 set × 3 · istirahat 90 dtk · 9 kontak
+**Approach jump 2 langkah (kanan & kiri)** — 3 × 3 · istirahat 90 dtk
 
 Simulasi rebound. Ayunan tangan kenceng, langkah terakhir panjang dan rendah.
 
 ### Kekuatan kecepatan — 26 menit
 
-**Hang power clean** — 5 set × 3 · 72-78% 1RM · istirahat 2,5 mnt
+**Hang power clean** — 5 × 3 · 72-78% 1RM · istirahat 2,5 mnt
 
 Tarik dari atas lutut. Fokus ke kecepatan batang, bukan berat. Kalau tekniknya rusak, turunin beban.
 
-**Jump squat barbell** — 4 set × 3 · 30% 1RM squat · istirahat 2 mnt · 12 kontak
+**Jump squat barbell** — 4 × 3 · 30% 1RM squat · istirahat 2 mnt
 
 Beban ringan, niatnya lompat setinggi mungkin. Mendarat lembut, reset tiap rep.
 
 ### Aksesori — 20 menit
 
-**Bulgarian split squat** — 3 set × 6 / kaki · istirahat 90 dtk
+**Bulgarian split squat** — 3 × 6 / kaki · istirahat 90 dtk
 
 Beda kekuatan kaki kanan-kiri itu penyebab umum lompatan mentok. Kaki lemah duluan.
 
-**Nordic hamstring curl** — 3 set × 5 · istirahat 2 mnt
+**Nordic hamstring curl** — 3 × 5 · istirahat 2 mnt
 
 Turun selambat mungkin. Ini asuransi buat hamstring lo.
 
-**Standing calf raise satu kaki** — 3 set × 10 / kaki · istirahat 60 dtk
+**Standing calf raise satu kaki** — 3 × 10 / kaki · istirahat 60 dtk
 
 Rentang penuh — turun sampai mentok, naik sampai jinjit maksimal. Jangan setengah-setengah.
 
@@ -106,11 +129,11 @@ Napas pelan lewat hidung. Ini bagian dari latihan, bukan tempelan.
 
 ---
 
-## Lower B — Kekuatan & Tenaga
+## Leg A — Kuadrisep & Squat
 
-Gym · 88 menit
+Gym · 80 menit
 
-> Angkat berat. Kekuatan maksimal adalah fondasi yang bikin latihan reaktif di Lower A ada gunanya.
+> Hari paha depan. Squat dulu waktu masih seger, sisanya ngejar volume sampai bener-bener kerasa.
 
 ### Pemanasan & aktivasi — 12 menit
 
@@ -122,49 +145,37 @@ Bangun suhu badan dulu.
 
 Buka pinggul biar squat bisa dalam tanpa punggung membulat.
 
-**Glute bridge + band walk** — 2 set × 15 / 10 tiap arah · istirahat 30 dtk
+**Glute bridge + band walk** — 2 × 15 / 10 tiap arah · istirahat 30 dtk
 
 Nyalain pantat sebelum diberatin.
 
-**Squat kosong naik bertahap** — 3 set × 5 · istirahat 60 dtk
+**Squat kosong naik bertahap** — 3 × 5 · istirahat 60 dtk
 
 Barbell kosong → 40% → 60%. Anggap ini bagian dari set kerja.
 
-### Plyometric intensitas sedang — 14 menit
+### Angkatan utama — 30 menit
 
-*21 kontak intensitas tinggi. Dikit aja — hari ini jatah tenaganya buat angkat berat.*
+**Back squat** — 4 × 8 · 70-75% 1RM · istirahat 2,5 mnt *(kuadrisep, glute)*
 
-**Box jump (fokus tinggi, turun melangkah)** — 4 set × 3 · istirahat 2 mnt · 12 kontak
+Turun sampai paha sejajar atau lebih dalam. Buat ngegedein, yang ngitung itu rentang penuh dan sisa 1-2 rep di tangki — bukan beban terberat yang bisa lo angkat sekali.
 
-Ukur suksesnya dari tinggi pinggul, bukan tinggi box. Turunnya melangkah, jangan lompat.
+**Leg press** — 3 × 12 · istirahat 2 mnt *(kuadrisep)*
 
-**Broad jump berturut** — 3 set × 3 · istirahat 2 mnt · 9 kontak
+Kaki agak rendah di papan biar paha depan yang kena. Lutut jangan dikunci di atas.
 
-Mendarat stabil, tahan sedetik, baru lompat lagi.
+### Aksesori — 30 menit
 
-### Angkatan utama — 34 menit
+**Bulgarian split squat** — 3 × 10 / kaki · istirahat 90 dtk *(kuadrisep, glute)*
 
-**Back squat** — 5 set × 3 · 85-90% 1RM · istirahat 3 mnt
+Beda kekuatan kiri-kanan paling kelihatan di sini. Mulai dari kaki yang lebih lemah, dan samain jumlah repnya.
 
-Turun sampai paha sejajar atau lebih dalam. Naiknya secepat yang lo bisa walau bebannya berat — niat cepat itu yang melatih tenaga.
+**Leg extension** — 3 × 15 · istirahat 60 dtk *(kuadrisep)*
 
-**Trap bar deadlift** — 4 set × 4 · 80% 1RM · istirahat 2,5 mnt
+Tahan 1 detik di atas. Ini satu-satunya gerakan yang ngisolasi paha depan — jangan diburu-buru.
 
-Posisinya paling mirip take-off lompatan: badan tegak, dorong lantai. Tarik secepat mungkin.
+**Standing calf raise** — 5 × 12 · istirahat 60 dtk *(betis)*
 
-### Aksesori — 20 menit
-
-**Barbell hip thrust** — 3 set × 8 · istirahat 90 dtk
-
-Kunci di atas 1 detik, dagu nunduk, tulang rusuk turun.
-
-**Romanian deadlift** — 3 set × 8 · istirahat 90 dtk
-
-Pinggul mundur, punggung netral. Berhenti pas hamstring kerasa ketarik penuh.
-
-**Standing calf raise** — 4 set × 10 · istirahat 60 dtk
-
-Tahan 1 detik di atas, turun pelan 2 detik.
+Tahan 1 detik di atas, turun pelan 2 detik. Betis butuh rentang penuh, bukan pantulan.
 
 ### Pendinginan — 8 menit
 
@@ -174,51 +185,107 @@ Habis sesi berat, ini yang nentuin besok lo bisa jalan normal apa nggak.
 
 ---
 
+## Leg B — Hamstring, Glute & Betis
+
+Gym · 78 menit
+
+> Rantai belakang. Hamstring dan glute itu separuh ukuran kaki, dan paling sering ketinggalan karena squat doang nggak cukup ngelatih mereka.
+
+### Pemanasan & aktivasi — 10 menit
+
+**Sepeda statis + leg swing** — 5 menit + 10 tiap arah
+
+Hamstring dingin itu gampang ketarik. Jangan langsung RDL.
+
+**Glute bridge + good morning barbell kosong** — 2 × 15 / 10 · istirahat 30 dtk
+
+Latih pola engsel pinggulnya dulu tanpa beban.
+
+### Angkatan utama — 28 menit
+
+**Trap bar deadlift** — 3 × 8 · 70% 1RM · istirahat 2,5 mnt *(hamstring, glute)*
+
+Badan tegak, dorong lantai. Berhenti satu rep sebelum punggung mulai membulat — nggak ada rep terakhir yang sepadan sama pinggang cedera.
+
+**Romanian deadlift** — 4 × 10 · istirahat 2 mnt *(hamstring, glute)*
+
+Pinggul mundur, punggung netral, lutut cuma nekuk dikit. Berhenti pas hamstring kerasa ketarik penuh — itu batas bawahnya, bukan lantai.
+
+### Aksesori — 32 menit
+
+**Barbell hip thrust** — 4 × 12 · istirahat 90 dtk *(glute)*
+
+Kunci di atas 1 detik, dagu nunduk, tulang rusuk turun. Yang kerasa harus pantat, bukan punggung bawah.
+
+**Lying leg curl** — 3 × 12 · istirahat 75 dtk *(hamstring)*
+
+Turunin pelan 3 detik. Bagian nurunin itu yang paling bikin hamstring gede.
+
+**Seated calf raise** — 5 × 15 · istirahat 60 dtk *(betis)*
+
+Duduk itu ngelatih otot betis yang beda dari yang berdiri. Dua-duanya perlu kalau mau betisnya nambah.
+
+**Hanging leg raise / cable crunch** — 4 × 15 · istirahat 60 dtk *(perut)*
+
+Panggul digulung ke atas, jangan cuma ayun kaki.
+
+### Pendinginan — 8 menit
+
+**Peregangan hamstring, glute, betis** — 45 dtk tiap pos
+
+Hamstring yang ketat bikin RDL minggu depan jadi pendek rentangnya.
+
+---
+
 ## Push — Dada, Bahu, Trisep
 
-Gym · 75 menit
+Gym · 82 menit
 
-> Kekuatan dorong. Buat basket ini penting di kontak badan dan jangkauan tembakan jauh.
+> Dada, bahu samping, trisep. Dorong berat dulu, lalu kejar volume sampai otot yang disasar bener-bener kehabisan — bukan badannya yang kehabisan.
 
 ### Pemanasan — 8 menit
 
-**Band pull-apart + shoulder dislocate** — 2 set × 15 / 10 · istirahat 30 dtk
+**Band pull-apart + shoulder dislocate** — 2 × 15 / 10 · istirahat 30 dtk
 
 Buka bahu sebelum didorong.
 
-**Scap push-up + push-up ringan** — 2 set × 10 / 10 · istirahat 30 dtk
+**Scap push-up + push-up ringan** — 2 × 10 / 10 · istirahat 30 dtk
 
 Tulang belikat gerak dulu, baru sikunya.
 
 ### Angkatan utama — 30 menit
 
-**Bench press** — 4 set × 5 · 80-85% 1RM · istirahat 3 mnt
+**Bench press** — 4 × 8 · 70-75% 1RM · istirahat 2,5 mnt *(dada)*
 
 Tulang belikat ditarik ke belakang dan bawah, kaki nekan lantai.
 
-**Overhead press (barbell)** — 4 set × 6 · 75% 1RM · istirahat 2,5 mnt
+**Overhead press (barbell)** — 3 × 10 · 65-70% 1RM · istirahat 2 mnt *(bahu)*
 
 Pantat dan perut kenceng, jangan melengkung di punggung bawah.
 
-### Aksesori — 30 menit
+### Aksesori — 37 menit
 
-**Incline dumbbell press** — 3 set × 8 · istirahat 90 dtk
+**Incline dumbbell press** — 4 × 10 · istirahat 90 dtk *(dada)*
 
-Sudut 30 derajat, rentang penuh.
+Sudut 30 derajat, rentang penuh. Turun sampai dada kerasa ketarik — di situ pertumbuhannya.
 
-**Dip berbeban** — 3 set × 8 · istirahat 90 dtk
+**Dip berbeban** — 3 × 10 · istirahat 90 dtk *(dada, trisep)*
 
 Badan agak condong ke depan, turun sampai lengan atas sejajar lantai.
 
-**Lateral raise** — 3 set × 12 · istirahat 60 dtk
+**Lateral raise** — 4 × 15 · istirahat 60 dtk *(bahu)*
 
-Angkat sampai setinggi bahu aja, jangan pakai ayunan.
+Angkat sampai setinggi bahu aja, jangan pakai ayunan. Bahu samping itu yang bikin badan kelihatan lebar — beban ringan, rep banyak.
 
-**Triceps rope pushdown** — 3 set × 12 · istirahat 60 dtk
+**Triceps rope pushdown** — 4 × 12 · istirahat 60 dtk *(trisep)*
 
 Siku nempel badan, buka talinya di bawah.
 
-**Pallof press** — 3 set × 10 / sisi · istirahat 45 dtk
+**Overhead triceps extension** — 3 × 12 · istirahat 60 dtk *(trisep)*
+
+Lengan di atas kepala biar kepala panjang trisep keregang penuh. Bagian itu nggak kena sama pushdown.
+
+**Pallof press** — 3 × 10 / sisi · istirahat 45 dtk *(perut)*
 
 Anti-putar. Perut nahan biar badan nggak keputar.
 
@@ -226,55 +293,59 @@ Anti-putar. Perut nahan biar badan nggak keputar.
 
 **Peregangan dada, bahu depan, trisep** — 45 dtk tiap pos
 
-Dada yang ketat bikin bahu maju dan tembakan jadi pendek.
+Dada yang ketat bikin bahu maju dan rentang bench jadi pendek.
 
 ---
 
 ## Pull — Punggung & Bisep
 
-Gym · 75 menit
+Gym · 82 menit
 
-> Tarikan dan punggung atas. Hari ini kaki sengaja diistirahatin penuh sebelum Lower B besok.
+> Punggung itu otot terbesar di badan atas dan paling tahan volume. Tarik dari atas dan dari depan — dua arah itu ngelatih bagian yang beda.
 
 ### Pemanasan — 8 menit
 
-**Dead hang di palang** — 2 set × 20 detik · istirahat 45 dtk
+**Dead hang di palang** — 2 × 20 detik · istirahat 45 dtk
 
 Bahu rileks lalu ditarik turun. Bagus buat sendi bahu.
 
-**Band pull-apart + cat-cow** — 2 set × 15 / 8 · istirahat 30 dtk
+**Band pull-apart + cat-cow** — 2 × 15 / 8 · istirahat 30 dtk
 
 Bangunin punggung atas.
 
 ### Angkatan utama — 30 menit
 
-**Pull-up berbeban** — 4 set × 5 · istirahat 3 mnt
+**Pull-up berbeban** — 4 × 8 · istirahat 2,5 mnt *(punggung)*
 
 Rentang penuh — lengan lurus di bawah, dagu lewat palang. Tarik pakai siku, bukan tangan.
 
-**Barbell row** — 4 set × 6 · 75% 1RM · istirahat 2,5 mnt
+**Barbell row** — 4 × 8 · 70% 1RM · istirahat 2 mnt *(punggung)*
 
 Badan condong 45 derajat dan dijaga. Tarik ke arah pusar.
 
-### Aksesori — 30 menit
+### Aksesori — 37 menit
 
-**Chest-supported row** — 3 set × 10 · istirahat 90 dtk
+**Chest-supported row** — 3 × 12 · istirahat 90 dtk *(punggung)*
 
 Dada nempel bantalan, nggak ada ayunan sama sekali.
 
-**Lat pulldown genggaman lebar** — 3 set × 10 · istirahat 75 dtk
+**Lat pulldown genggaman lebar** — 3 × 12 · istirahat 75 dtk *(punggung)*
 
 Dada dibusungin, tarik ke tulang selangka.
 
-**Face pull** — 3 set × 15 · istirahat 60 dtk
+**Face pull** — 3 × 15 · istirahat 60 dtk *(bahu)*
 
 Tarik ke arah dahi, putar keluar di akhir. Ini penyeimbang buat semua dorongan lo.
 
-**Barbell / dumbbell curl** — 3 set × 10 · istirahat 60 dtk
+**Barbell / dumbbell curl** — 4 × 12 · istirahat 60 dtk *(bisep)*
 
-Siku diem di tempat.
+Siku diem di tempat. Jangan pakai ayunan pinggang — bisep nggak peduli bebannya berat, dia peduli dia yang ngangkat.
 
-**Farmer carry** — 3 set × 40 meter · istirahat 75 dtk
+**Hammer curl** — 3 × 12 · istirahat 60 dtk *(bisep)*
+
+Genggaman netral. Ini ngenain brachialis, otot di bawah bisep yang bikin lengan kelihatan tebal dari samping.
+
+**Farmer carry** — 3 × 40 meter · istirahat 75 dtk
 
 Berdiri tegak, bahu turun. Bagus buat genggaman dan badan tengah.
 
@@ -286,65 +357,77 @@ Gantung di palang sambil napas panjang juga boleh.
 
 ---
 
-## Upper — Gabungan Ringan
+## Upper — Putaran Kedua
 
-Gym · 70 menit
+Gym · 85 menit
 
-> Sesi paling ringan. Ditaruh setelah basket, jadi tujuannya ngerawat volume — bukan bikin rekor baru.
+> Putaran kedua buat seluruh badan atas minggu ini. Sudutnya sengaja beda dari Push dan Pull — otot yang sama, rangsangan yang lain.
 
 ### Pemanasan — 8 menit
 
-**Band pull-apart + shoulder circle** — 2 set × 15 / 10 · istirahat 30 dtk
+**Band pull-apart + shoulder circle** — 2 × 15 / 10 · istirahat 30 dtk
 
-Bahu udah kepakai pas basket, pelan-pelan.
+Bahu udah kepakai minggu ini, pelan-pelan.
 
-**Push-up + scap pull-up** — 2 set × 10 / 8 · istirahat 45 dtk
+**Push-up + scap pull-up** — 2 × 10 / 8 · istirahat 45 dtk
 
 Sekadar nyalain otot.
 
 ### Angkatan utama — 24 menit
 
-**Incline bench press** — 4 set × 6 · 75% 1RM · istirahat 2,5 mnt
+**Incline bench press** — 4 × 10 · 65-70% 1RM · istirahat 2 mnt *(dada)*
 
-Jangan sampai gagal angkat. Sisain 2 rep di tangki.
+Sisain 1-2 rep di tangki. Gagal angkat tiap set itu nambah capek lebih banyak daripada nambah otot.
 
-**Chin-up berbeban** — 4 set × 6 · istirahat 2,5 mnt
+**Chin-up berbeban** — 3 × 10 · istirahat 2 mnt *(punggung)*
 
 Genggaman menghadap badan, rentang penuh.
 
-### Aksesori — 28 menit
+### Aksesori — 43 menit
 
-**Dumbbell shoulder press** — 3 set × 10 · istirahat 75 dtk
+**Dumbbell shoulder press** — 3 × 12 · istirahat 75 dtk *(bahu)*
 
 Duduk bersandar, gerakan terkontrol.
 
-**Cable row** — 3 set × 12 · istirahat 75 dtk
+**Cable row** — 3 × 12 · istirahat 75 dtk *(punggung)*
 
 Tahan sebentar pas ketarik penuh.
 
-**Lateral raise** — 3 set × 15 · istirahat 45 dtk
+**Lateral raise** — 3 × 15 · istirahat 45 dtk *(bahu)*
 
 Beban ringan, rep pelan.
 
-**Face pull** — 3 set × 15 · istirahat 45 dtk
+**Face pull** — 3 × 15 · istirahat 45 dtk *(bahu)*
 
 Kesehatan bahu. Jangan dilewat.
 
-**Hanging leg raise** — 3 set × 12 · istirahat 60 dtk
+**Hanging leg raise** — 3 × 12 · istirahat 60 dtk *(perut)*
 
 Panggul digulung ke atas, jangan cuma ayun kaki.
+
+**Cable fly** — 3 × 12 · istirahat 60 dtk *(dada)*
+
+Rentangnya lebih panjang dari bench. Tahan sebentar pas dua tangan ketemu.
+
+**EZ-bar curl** — 3 × 12 · istirahat 60 dtk *(bisep)*
+
+Batang EZ lebih enak di pergelangan daripada barbell lurus.
+
+**Overhead rope extension** — 3 × 12 · istirahat 60 dtk *(trisep)*
+
+Siku tetap ngarah ke atas. Kalau sikunya melebar, bebannya kegedean.
 
 ### Pendinginan & mobilitas — 10 menit
 
 **Mobilitas bahu, dada, punggung atas** — 60 dtk tiap pos
 
-Besok libur — pakai waktu ini buat beneran pulih.
+Besok Leg B. Badan atas boleh bener-bener lepas sekarang.
 
 ---
 
-## Basket A — Shooting & Handling
+## Basket A — Shooting & Handling *(nggak dijadwalin)*
 
-Lapangan · 110 menit
+Basket · 110 menit
 
 > Sesi skill murni pas badan masih segar. Dikerjain sebelum angkat beban Push.
 
@@ -368,19 +451,19 @@ Siku di bawah bola, pergelangan jatuh. Lihat lingkaran belakang ring.
 
 ### Handling di bawah tekanan — 28 menit
 
-**2 bola: pound, high-low, bergantian, crossover ritme** — 2 set × 30 dtk tiap variasi · istirahat 45 dtk
+**2 bola: pound, high-low, bergantian, crossover ritme** — 2 × 30 dtk tiap variasi · istirahat 45 dtk
 
 Mata ke depan terus. Dribble sekuat mungkin.
 
-**Zig-zag cone, 2 gerakan tiap cone** — 4 set × 1 lintasan · istirahat 45 dtk
+**Zig-zag cone, 2 gerakan tiap cone** — 4 × 1 lintasan · istirahat 45 dtk
 
 Ganti arah dengan bahu rendah, ledak keluar dari gerakan — bukan cuma pindah bola.
 
-**Pound-push-pull series** — 3 set × 45 detik · istirahat 45 dtk
+**Pound-push-pull series** — 3 × 45 detik · istirahat 45 dtk
 
 Latihan ngatur bola di ruang sempit.
 
-**Reaksi bola tenis / aba-aba suara** — 3 set × 45 detik · istirahat 45 dtk
+**Reaksi bola tenis / aba-aba suara** — 3 × 45 detik · istirahat 45 dtk
 
 Ini yang bedain handling latihan sama handling pertandingan: matanya nggak ke bola.
 
@@ -404,11 +487,11 @@ Kaki udah siap sebelum bola nyampe. Jangan nyetel kaki setelah nangkap.
 
 Dribble kenceng, angkat lurus ke atas, mendarat di tempat yang sama.
 
-**Sprint into shot (transisi)** — 10 masuk · 10 kontak
+**Sprint into shot (transisi)** — 10 masuk
 
 Lari dulu baru nembak — biar kebiasa nembak sambil napas berat.
 
-**Tantangan 3-2-1** — 3 set × 3 catch&shoot, 2 off-dribble, 1 movement shot · istirahat 60 dtk
+**Tantangan 3-2-1** — 3 × 3 catch&shoot, 2 off-dribble, 1 movement shot · istirahat 60 dtk
 
 Satu putaran harus tuntas berurutan. Kalau meleset, ulang nomor itu.
 
@@ -426,9 +509,9 @@ Habis ini lanjut Push di gym. Jangan duduk kelamaan.
 
 ---
 
-## Basket B — Finishing & Kombinasi
+## Basket B — Finishing & Kombinasi *(nggak dijadwalin)*
 
-Lapangan · 115 menit
+Basket · 115 menit
 
 > Selesaiin serangan di ring dan sambung gerakan jadi tembakan. Dikerjain sebelum Upper.
 
@@ -448,13 +531,13 @@ Bangun rasa dulu dari deket.
 
 Sekadar jaga sentuhan.
 
-**Cone series, 2 gerakan tiap cone** — 3 set × 1 lintasan · istirahat 45 dtk
+**Cone series, 2 gerakan tiap cone** — 3 × 1 lintasan · istirahat 45 dtk
 
 Kecepatan penuh.
 
 ### Finishing di ring — 35 menit
 
-**Mikan series (biasa, reverse, power)** — 2 set × 10 tiap versi · istirahat 45 dtk
+**Mikan series (biasa, reverse, power)** — 2 × 10 tiap versi · istirahat 45 dtk
 
 Ritme kaki kanan-kiri, bola nggak turun ke bawah dada. Ini pemanasan wajib buat tangan lemah lo.
 
@@ -470,7 +553,7 @@ Nabrak dulu baru naik. Bola dilindungi pakai badan, bukan dijauhin.
 
 Senjata buat lawan yang lebih tinggi. Lepas dari puncak lompatan, sentuhan lembut.
 
-**Timed finishing (30 detik, bolak-balik kreatif)** — 4 set × 30 detik · istirahat 60 dtk
+**Timed finishing (30 detik, bolak-balik kreatif)** — 4 × 30 detik · istirahat 60 dtk
 
 Cepat, variatif, harus masuk. Kelelahan bikin lo nemu finishing yang paling efisien.
 
@@ -498,7 +581,7 @@ Tipuan harus mirip tembakan aslinya.
 
 ### Situasi & kondisi fisik — 15 menit
 
-**Sprint penuh lapangan, maks 3 dribble → layup** — 6 rep · istirahat 45 dtk · 12 kontak
+**Sprint penuh lapangan, maks 3 dribble → layup** — 6 rep · istirahat 45 dtk
 
 Kecepatan penuh. Layup-nya tetap harus masuk.
 
@@ -518,9 +601,9 @@ Lanjut Upper setelah ini.
 
 ---
 
-## Basket C — Volume Shooting (opsional)
+## Basket C — Volume Shooting (opsional) *(nggak dijadwalin)*
 
-Lapangan · 80 menit · opsional
+Basket · 80 menit
 
 > Sesi ketiga yang opsional. Sengaja minim lompatan biar nggak numpuk beban di kaki menjelang libur.
 
@@ -538,11 +621,11 @@ Pelan, rasain lepasnya bola.
 
 *Target 150 tembakan masuk. Catat persentasenya, itu angka yang bakal lo lihat naik.*
 
-**5 spot × 3 putaran — catch & shoot** — 3 set × 10 masuk tiap spot · istirahat 60 dtk
+**5 spot × 3 putaran — catch & shoot** — 3 × 10 masuk tiap spot · istirahat 60 dtk
 
 Sudut, wing kanan, top, wing kiri, sudut. Kaki siap sebelum bola datang.
 
-**1-dribble kanan & kiri dari tiap wing** — 2 set × 8 masuk tiap sisi · istirahat 60 dtk
+**1-dribble kanan & kiri dari tiap wing** — 2 × 8 masuk tiap sisi · istirahat 60 dtk
 
 Dua arah harus sama nyamannya.
 
@@ -552,7 +635,7 @@ Lari dulu, baru nembak.
 
 ### Free throw — 15 menit
 
-**10 set × 5 free throw** — 10 set × 5 tembakan · istirahat 30 dtk
+**10 set × 5 free throw** — 10 × 5 tembakan · istirahat 30 dtk
 
 Catat berapa yang masuk dari 50. Target di atas 80%.
 
@@ -563,12 +646,3 @@ Catat berapa yang masuk dari 50. Target di atas 80%.
 Besok libur total. Nikmatin.
 
 ---
-
-## Sumber rujukan
-
-- [Strength Training for Vertical Jump — Vertical Jump Center](https://www.verticaljumpcenter.com/blog/strength-training-for-vertical-jump/) — pilihan angkatan utama dan rentang set/rep/intensitasnya
-- [Optimizing High Jumper Training Load — Coach Otto](https://coachotto.training/optimizing-high-jumper-training-load/) — batas kontak plyometrik per minggu menurut level
-- [Division I Individual Basketball Workout — Pro Skills Basketball](https://proskillsbasketball.com/division-i-level-individual-basketball-workout-for-high-school-players/) — susunan blok sesi basket individu
-- [Shooting & Ball Handling Workout — Breakthrough Basketball](https://www.breakthroughbasketball.com/drills/shooting-ballhandling-workout) — drill handling dua bola dan seri pivot/counter
-
-Program ini titik awal, bukan hukum. Kalau ada sendi yang nyeri berulang, kurangi beban dan kontak lompatan lalu temui tenaga medis — jangan diterusin.

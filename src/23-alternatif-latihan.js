@@ -98,22 +98,6 @@ const ALT = {
 
   /* ---------------- LOWER B — kekuatan & tenaga ---------------- */
 
-  lb_p1: [
-    { id:'lb_p1_seated', n:'Seated box jump', set:4, rep:'3', ist:'2 mnt', kontak:12,
-      cue:'Mulai dari duduk, jadi nggak bisa nyuri tenaga dari mantulan. Murni tenaga dari diam.' },
-    { id:'lb_p1_single', n:'Single-leg box jump', set:3, rep:'4 / kaki', ist:'2 mnt', kontak:12,
-      cue:'Box direndahin. Turunnya melangkah, jangan lompat.' },
-    { id:'lb_p1_depth_box', n:'Depth jump ke box', set:4, rep:'3', ist:'2,5 mnt', kontak:12,
-      cue:'Turun dari box rendah, mantul ke box lain. Mendarat di ketinggian bikin sendi lebih adem.' },
-  ],
-  lb_p2: [
-    { id:'lb_p2_sl', n:'Single-leg broad jump', set:3, rep:'3 / kaki', ist:'2 mnt', kontak:12,
-      cue:'Catat jarak kanan-kiri. Selisih lebih dari 10% artinya ada yang perlu dibenerin.' },
-    { id:'lb_p2_lateral', n:'Lateral bound (skater)', set:3, rep:'5 / sisi', ist:'2 mnt', kontak:15,
-      cue:'Lompat menyamping, mendarat satu kaki, tahan sebentar sebelum balik. Ini yang ngejaga lutut pas ganti arah.' },
-    { id:'lb_p2_vertical', n:'Countermovement jump (max)', set:4, rep:'3', ist:'2 mnt', kontak:12,
-      cue:'Lompat setinggi mungkin dari berdiri. Simpel, dan gampang diukur majunya.' },
-  ],
   lb_m1: [
     { id:'lb_m1_front', n:'Front squat', set:5, rep:'3', ist:'3 mnt', int:'80-85% 1RM', log:true,
       cue:'Badan lebih tegak, quad lebih kena, punggung bawah lebih adem. Siku tinggi terus.' },

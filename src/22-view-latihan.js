@@ -54,8 +54,8 @@ const PROGRAM = {
   },
 
   lowerB: {
-    n:'Lower B — Kekuatan & Tenaga', jenis:'gym', menit:88, warna:'--c-lime', ikon:'🏋',
-    fokus:'Angkat berat. Kekuatan maksimal adalah fondasi yang bikin latihan reaktif di Lower A ada gunanya.',
+    n:'Leg A — Kuadrisep & Squat', jenis:'gym', menit:80, warna:'--c-lime', ikon:'🦵',
+    fokus:'Hari paha depan. Squat dulu waktu masih seger, sisanya ngejar volume sampai bener-bener kerasa.',
     blok:[
       { n:'Pemanasan & aktivasi', m:12, ex:[
         {id:'lb_w1', n:'Sepeda statis / jalan cepat', set:1, rep:'5 menit', ist:'—', cue:'Bangun suhu badan dulu.'},
@@ -65,25 +65,19 @@ const PROGRAM = {
         {id:'lb_w4', n:'Squat kosong naik bertahap', set:3, rep:'5', ist:'60 dtk',
          cue:'Barbell kosong → 40% → 60%. Anggap ini bagian dari set kerja.'},
       ]},
-      { n:'Plyometric intensitas sedang', m:14, catatan:'21 kontak intensitas tinggi. Dikit aja — hari ini jatah tenaganya buat angkat berat.', ex:[
-        {id:'lb_p1', n:'Box jump (fokus tinggi, turun melangkah)', set:4, rep:'3', ist:'2 mnt', kontak:12,
-         cue:'Ukur suksesnya dari tinggi pinggul, bukan tinggi box. Turunnya melangkah, jangan lompat.'},
-        {id:'lb_p2', n:'Broad jump berturut', set:3, rep:'3', ist:'2 mnt', kontak:9,
-         cue:'Mendarat stabil, tahan sedetik, baru lompat lagi.'},
+      { n:'Angkatan utama', m:30, ex:[
+        {id:'lb_m1', n:'Back squat', set:4, rep:'8', ist:'2,5 mnt', int:'70-75% 1RM', log:true, otot:['kuadrisep','glute'],
+         cue:'Turun sampai paha sejajar atau lebih dalam. Buat ngegedein, yang ngitung itu rentang penuh dan sisa 1-2 rep di tangki — bukan beban terberat yang bisa lo angkat sekali.'},
+        {id:'lb_m3', n:'Leg press', set:3, rep:'12', ist:'2 mnt', log:true, otot:'kuadrisep',
+         cue:'Kaki agak rendah di papan biar paha depan yang kena. Lutut jangan dikunci di atas.'},
       ]},
-      { n:'Angkatan utama', m:34, ex:[
-        {id:'lb_m1', n:'Back squat', set:5, rep:'3', ist:'3 mnt', int:'85-90% 1RM', log:true,
-         cue:'Turun sampai paha sejajar atau lebih dalam. Naiknya secepat yang lo bisa walau bebannya berat — niat cepat itu yang melatih tenaga.'},
-        {id:'lb_m2', n:'Trap bar deadlift', set:4, rep:'4', ist:'2,5 mnt', int:'80% 1RM', log:true,
-         cue:'Posisinya paling mirip take-off lompatan: badan tegak, dorong lantai. Tarik secepat mungkin.'},
-      ]},
-      { n:'Aksesori', m:20, ex:[
-        {id:'lb_a1', n:'Barbell hip thrust', set:3, rep:'8', ist:'90 dtk', log:true,
-         cue:'Kunci di atas 1 detik, dagu nunduk, tulang rusuk turun.'},
-        {id:'lb_a2', n:'Romanian deadlift', set:3, rep:'8', ist:'90 dtk', log:true,
-         cue:'Pinggul mundur, punggung netral. Berhenti pas hamstring kerasa ketarik penuh.'},
-        {id:'lb_a3', n:'Standing calf raise', set:4, rep:'10', ist:'60 dtk', log:true,
-         cue:'Tahan 1 detik di atas, turun pelan 2 detik.'},
+      { n:'Aksesori', m:30, ex:[
+        {id:'lb_a5', n:'Bulgarian split squat', set:3, rep:'10 / kaki', ist:'90 dtk', log:true, otot:['kuadrisep','glute'],
+         cue:'Beda kekuatan kiri-kanan paling kelihatan di sini. Mulai dari kaki yang lebih lemah, dan samain jumlah repnya.'},
+        {id:'lb_a4', n:'Leg extension', set:3, rep:'15', ist:'60 dtk', log:true, otot:'kuadrisep',
+         cue:'Tahan 1 detik di atas. Ini satu-satunya gerakan yang ngisolasi paha depan — jangan diburu-buru.'},
+        {id:'lb_a3', n:'Standing calf raise', set:5, rep:'12', ist:'60 dtk', log:true, otot:'betis',
+         cue:'Tahan 1 detik di atas, turun pelan 2 detik. Betis butuh rentang penuh, bukan pantulan.'},
       ]},
       { n:'Pendinginan', m:8, ex:[
         {id:'lb_c1', n:'Peregangan quad, hamstring, betis, pinggul', set:1, rep:'45 dtk tiap pos', ist:'—',
@@ -92,52 +86,89 @@ const PROGRAM = {
     ]
   },
 
+  kaki: {
+    n:'Leg B — Hamstring, Glute & Betis', jenis:'gym', menit:78, warna:'--c-teal', ikon:'🔥',
+    fokus:'Rantai belakang. Hamstring dan glute itu separuh ukuran kaki, dan paling sering ketinggalan karena squat doang nggak cukup ngelatih mereka.',
+    blok:[
+      { n:'Pemanasan & aktivasi', m:10, ex:[
+        {id:'kk_w1', n:'Sepeda statis + leg swing', set:1, rep:'5 menit + 10 tiap arah', ist:'—',
+         cue:'Hamstring dingin itu gampang ketarik. Jangan langsung RDL.'},
+        {id:'kk_w2', n:'Glute bridge + good morning barbell kosong', set:2, rep:'15 / 10', ist:'30 dtk',
+         cue:'Latih pola engsel pinggulnya dulu tanpa beban.'},
+      ]},
+      { n:'Angkatan utama', m:28, ex:[
+        {id:'lb_m2', n:'Trap bar deadlift', set:3, rep:'8', ist:'2,5 mnt', int:'70% 1RM', log:true, otot:['hamstring','glute'],
+         cue:'Badan tegak, dorong lantai. Berhenti satu rep sebelum punggung mulai membulat — nggak ada rep terakhir yang sepadan sama pinggang cedera.'},
+        {id:'lb_a2', n:'Romanian deadlift', set:4, rep:'10', ist:'2 mnt', log:true, otot:['hamstring','glute'],
+         cue:'Pinggul mundur, punggung netral, lutut cuma nekuk dikit. Berhenti pas hamstring kerasa ketarik penuh — itu batas bawahnya, bukan lantai.'},
+      ]},
+      { n:'Aksesori', m:32, ex:[
+        {id:'lb_a1', n:'Barbell hip thrust', set:4, rep:'12', ist:'90 dtk', log:true, otot:'glute',
+         cue:'Kunci di atas 1 detik, dagu nunduk, tulang rusuk turun. Yang kerasa harus pantat, bukan punggung bawah.'},
+        {id:'kk_a1', n:'Lying leg curl', set:3, rep:'12', ist:'75 dtk', log:true, otot:'hamstring',
+         cue:'Turunin pelan 3 detik. Bagian nurunin itu yang paling bikin hamstring gede.'},
+        {id:'kk_a2', n:'Seated calf raise', set:5, rep:'15', ist:'60 dtk', log:true, otot:'betis',
+         cue:'Duduk itu ngelatih otot betis yang beda dari yang berdiri. Dua-duanya perlu kalau mau betisnya nambah.'},
+        {id:'kk_a3', n:'Hanging leg raise / cable crunch', set:4, rep:'15', ist:'60 dtk', otot:'perut',
+         cue:'Panggul digulung ke atas, jangan cuma ayun kaki.'},
+      ]},
+      { n:'Pendinginan', m:8, ex:[
+        {id:'kk_c1', n:'Peregangan hamstring, glute, betis', set:1, rep:'45 dtk tiap pos', ist:'—',
+         cue:'Hamstring yang ketat bikin RDL minggu depan jadi pendek rentangnya.'},
+      ]},
+    ]
+  },
+
   push: {
-    n:'Push — Dada, Bahu, Trisep', jenis:'gym', menit:75, warna:'--c-info', ikon:'🔺',
-    fokus:'Kekuatan dorong. Buat basket ini penting di kontak badan dan jangkauan tembakan jauh.',
+    n:'Push — Dada, Bahu, Trisep', jenis:'gym', menit:82, warna:'--c-info', ikon:'🔺',
+    fokus:'Dada, bahu samping, trisep. Dorong berat dulu, lalu kejar volume sampai otot yang disasar bener-bener kehabisan — bukan badannya yang kehabisan.',
     blok:[
       { n:'Pemanasan', m:8, ex:[
         {id:'pu_w1', n:'Band pull-apart + shoulder dislocate', set:2, rep:'15 / 10', ist:'30 dtk', cue:'Buka bahu sebelum didorong.'},
         {id:'pu_w2', n:'Scap push-up + push-up ringan', set:2, rep:'10 / 10', ist:'30 dtk', cue:'Tulang belikat gerak dulu, baru sikunya.'},
       ]},
       { n:'Angkatan utama', m:30, ex:[
-        {id:'pu_m1', n:'Bench press', set:4, rep:'5', ist:'3 mnt', int:'80-85% 1RM', log:true,
+        {id:'pu_m1', n:'Bench press', set:4, rep:'8', ist:'2,5 mnt', int:'70-75% 1RM', log:true, otot:'dada',
          cue:'Tulang belikat ditarik ke belakang dan bawah, kaki nekan lantai.'},
-        {id:'pu_m2', n:'Overhead press (barbell)', set:4, rep:'6', ist:'2,5 mnt', int:'75% 1RM', log:true,
+        {id:'pu_m2', n:'Overhead press (barbell)', set:3, rep:'10', ist:'2 mnt', int:'65-70% 1RM', log:true, otot:'bahu',
          cue:'Pantat dan perut kenceng, jangan melengkung di punggung bawah.'},
       ]},
-      { n:'Aksesori', m:30, ex:[
-        {id:'pu_a1', n:'Incline dumbbell press', set:3, rep:'8', ist:'90 dtk', log:true, cue:'Sudut 30 derajat, rentang penuh.'},
-        {id:'pu_a2', n:'Dip berbeban', set:3, rep:'8', ist:'90 dtk', log:true, cue:'Badan agak condong ke depan, turun sampai lengan atas sejajar lantai.'},
-        {id:'pu_a3', n:'Lateral raise', set:3, rep:'12', ist:'60 dtk', log:true, cue:'Angkat sampai setinggi bahu aja, jangan pakai ayunan.'},
-        {id:'pu_a4', n:'Triceps rope pushdown', set:3, rep:'12', ist:'60 dtk', log:true, cue:'Siku nempel badan, buka talinya di bawah.'},
-        {id:'pu_a5', n:'Pallof press', set:3, rep:'10 / sisi', ist:'45 dtk', cue:'Anti-putar. Perut nahan biar badan nggak keputar.'},
+      { n:'Aksesori', m:37, ex:[
+        {id:'pu_a1', n:'Incline dumbbell press', set:4, rep:'10', ist:'90 dtk', log:true, otot:'dada', cue:'Sudut 30 derajat, rentang penuh. Turun sampai dada kerasa ketarik — di situ pertumbuhannya.'},
+        {id:'pu_a2', n:'Dip berbeban', set:3, rep:'10', ist:'90 dtk', log:true, otot:['dada','trisep'], cue:'Badan agak condong ke depan, turun sampai lengan atas sejajar lantai.'},
+        {id:'pu_a3', n:'Lateral raise', set:4, rep:'15', ist:'60 dtk', log:true, otot:'bahu', cue:'Angkat sampai setinggi bahu aja, jangan pakai ayunan. Bahu samping itu yang bikin badan kelihatan lebar — beban ringan, rep banyak.'},
+        {id:'pu_a4', n:'Triceps rope pushdown', set:4, rep:'12', ist:'60 dtk', log:true, otot:'trisep', cue:'Siku nempel badan, buka talinya di bawah.'},
+        {id:'pu_a6', n:'Overhead triceps extension', set:3, rep:'12', ist:'60 dtk', log:true, otot:'trisep',
+         cue:'Lengan di atas kepala biar kepala panjang trisep keregang penuh. Bagian itu nggak kena sama pushdown.'},
+        {id:'pu_a5', n:'Pallof press', set:3, rep:'10 / sisi', ist:'45 dtk', otot:'perut', cue:'Anti-putar. Perut nahan biar badan nggak keputar.'},
       ]},
       { n:'Pendinginan', m:7, ex:[
-        {id:'pu_c1', n:'Peregangan dada, bahu depan, trisep', set:1, rep:'45 dtk tiap pos', ist:'—', cue:'Dada yang ketat bikin bahu maju dan tembakan jadi pendek.'},
+        {id:'pu_c1', n:'Peregangan dada, bahu depan, trisep', set:1, rep:'45 dtk tiap pos', ist:'—', cue:'Dada yang ketat bikin bahu maju dan rentang bench jadi pendek.'},
       ]},
     ]
   },
 
   pull: {
-    n:'Pull — Punggung & Bisep', jenis:'gym', menit:75, warna:'--c-violet', ikon:'🔻',
-    fokus:'Tarikan dan punggung atas. Hari ini kaki sengaja diistirahatin penuh sebelum Lower B besok.',
+    n:'Pull — Punggung & Bisep', jenis:'gym', menit:82, warna:'--c-violet', ikon:'🔻',
+    fokus:'Punggung itu otot terbesar di badan atas dan paling tahan volume. Tarik dari atas dan dari depan — dua arah itu ngelatih bagian yang beda.',
     blok:[
       { n:'Pemanasan', m:8, ex:[
         {id:'pl_w1', n:'Dead hang di palang', set:2, rep:'20 detik', ist:'45 dtk', cue:'Bahu rileks lalu ditarik turun. Bagus buat sendi bahu.'},
         {id:'pl_w2', n:'Band pull-apart + cat-cow', set:2, rep:'15 / 8', ist:'30 dtk', cue:'Bangunin punggung atas.'},
       ]},
       { n:'Angkatan utama', m:30, ex:[
-        {id:'pl_m1', n:'Pull-up berbeban', set:4, rep:'5', ist:'3 mnt', log:true,
+        {id:'pl_m1', n:'Pull-up berbeban', set:4, rep:'8', ist:'2,5 mnt', log:true, otot:'punggung',
          cue:'Rentang penuh — lengan lurus di bawah, dagu lewat palang. Tarik pakai siku, bukan tangan.'},
-        {id:'pl_m2', n:'Barbell row', set:4, rep:'6', ist:'2,5 mnt', int:'75% 1RM', log:true,
+        {id:'pl_m2', n:'Barbell row', set:4, rep:'8', ist:'2 mnt', int:'70% 1RM', log:true, otot:'punggung',
          cue:'Badan condong 45 derajat dan dijaga. Tarik ke arah pusar.'},
       ]},
-      { n:'Aksesori', m:30, ex:[
-        {id:'pl_a1', n:'Chest-supported row', set:3, rep:'10', ist:'90 dtk', log:true, cue:'Dada nempel bantalan, nggak ada ayunan sama sekali.'},
-        {id:'pl_a2', n:'Lat pulldown genggaman lebar', set:3, rep:'10', ist:'75 dtk', log:true, cue:'Dada dibusungin, tarik ke tulang selangka.'},
-        {id:'pl_a3', n:'Face pull', set:3, rep:'15', ist:'60 dtk', log:true, cue:'Tarik ke arah dahi, putar keluar di akhir. Ini penyeimbang buat semua dorongan lo.'},
-        {id:'pl_a4', n:'Barbell / dumbbell curl', set:3, rep:'10', ist:'60 dtk', log:true, cue:'Siku diem di tempat.'},
+      { n:'Aksesori', m:37, ex:[
+        {id:'pl_a1', n:'Chest-supported row', set:3, rep:'12', ist:'90 dtk', log:true, otot:'punggung', cue:'Dada nempel bantalan, nggak ada ayunan sama sekali.'},
+        {id:'pl_a2', n:'Lat pulldown genggaman lebar', set:3, rep:'12', ist:'75 dtk', log:true, otot:'punggung', cue:'Dada dibusungin, tarik ke tulang selangka.'},
+        {id:'pl_a3', n:'Face pull', set:3, rep:'15', ist:'60 dtk', log:true, otot:'bahu', cue:'Tarik ke arah dahi, putar keluar di akhir. Ini penyeimbang buat semua dorongan lo.'},
+        {id:'pl_a4', n:'Barbell / dumbbell curl', set:4, rep:'12', ist:'60 dtk', log:true, otot:'bisep', cue:'Siku diem di tempat. Jangan pakai ayunan pinggang — bisep nggak peduli bebannya berat, dia peduli dia yang ngangkat.'},
+        {id:'pl_a6', n:'Hammer curl', set:3, rep:'12', ist:'60 dtk', log:true, otot:'bisep',
+         cue:'Genggaman netral. Ini ngenain brachialis, otot di bawah bisep yang bikin lengan kelihatan tebal dari samping.'},
         {id:'pl_a5', n:'Farmer carry', set:3, rep:'40 meter', ist:'75 dtk', log:true, cue:'Berdiri tegak, bahu turun. Bagus buat genggaman dan badan tengah.'},
       ]},
       { n:'Pendinginan', m:7, ex:[
@@ -147,28 +178,34 @@ const PROGRAM = {
   },
 
   upper: {
-    n:'Upper — Gabungan Ringan', jenis:'gym', menit:70, warna:'--c-teal', ikon:'💪',
-    fokus:'Sesi paling ringan. Ditaruh setelah basket, jadi tujuannya ngerawat volume — bukan bikin rekor baru.',
+    n:'Upper — Putaran Kedua', jenis:'gym', menit:85, warna:'--c-teal', ikon:'💪',
+    fokus:'Putaran kedua buat seluruh badan atas minggu ini. Sudutnya sengaja beda dari Push dan Pull — otot yang sama, rangsangan yang lain.',
     blok:[
       { n:'Pemanasan', m:8, ex:[
-        {id:'up_w1', n:'Band pull-apart + shoulder circle', set:2, rep:'15 / 10', ist:'30 dtk', cue:'Bahu udah kepakai pas basket, pelan-pelan.'},
+        {id:'up_w1', n:'Band pull-apart + shoulder circle', set:2, rep:'15 / 10', ist:'30 dtk', cue:'Bahu udah kepakai minggu ini, pelan-pelan.'},
         {id:'up_w2', n:'Push-up + scap pull-up', set:2, rep:'10 / 8', ist:'45 dtk', cue:'Sekadar nyalain otot.'},
       ]},
       { n:'Angkatan utama', m:24, ex:[
-        {id:'up_m1', n:'Incline bench press', set:4, rep:'6', ist:'2,5 mnt', int:'75% 1RM', log:true,
-         cue:'Jangan sampai gagal angkat. Sisain 2 rep di tangki.'},
-        {id:'up_m2', n:'Chin-up berbeban', set:4, rep:'6', ist:'2,5 mnt', log:true, cue:'Genggaman menghadap badan, rentang penuh.'},
+        {id:'up_m1', n:'Incline bench press', set:4, rep:'10', ist:'2 mnt', int:'65-70% 1RM', log:true, otot:'dada',
+         cue:'Sisain 1-2 rep di tangki. Gagal angkat tiap set itu nambah capek lebih banyak daripada nambah otot.'},
+        {id:'up_m2', n:'Chin-up berbeban', set:3, rep:'10', ist:'2 mnt', log:true, otot:'punggung', cue:'Genggaman menghadap badan, rentang penuh.'},
       ]},
-      { n:'Aksesori', m:28, ex:[
-        {id:'up_a1', n:'Dumbbell shoulder press', set:3, rep:'10', ist:'75 dtk', log:true, cue:'Duduk bersandar, gerakan terkontrol.'},
-        {id:'up_a2', n:'Cable row', set:3, rep:'12', ist:'75 dtk', log:true, cue:'Tahan sebentar pas ketarik penuh.'},
-        {id:'up_a3', n:'Lateral raise', set:3, rep:'15', ist:'45 dtk', log:true, cue:'Beban ringan, rep pelan.'},
-        {id:'up_a4', n:'Face pull', set:3, rep:'15', ist:'45 dtk', log:true, cue:'Kesehatan bahu. Jangan dilewat.'},
-        {id:'up_a5', n:'Hanging leg raise', set:3, rep:'12', ist:'60 dtk', cue:'Panggul digulung ke atas, jangan cuma ayun kaki.'},
+      { n:'Aksesori', m:43, ex:[
+        {id:'up_a1', n:'Dumbbell shoulder press', set:3, rep:'12', ist:'75 dtk', log:true, otot:'bahu', cue:'Duduk bersandar, gerakan terkontrol.'},
+        {id:'up_a2', n:'Cable row', set:3, rep:'12', ist:'75 dtk', log:true, otot:'punggung', cue:'Tahan sebentar pas ketarik penuh.'},
+        {id:'up_a3', n:'Lateral raise', set:3, rep:'15', ist:'45 dtk', log:true, otot:'bahu', cue:'Beban ringan, rep pelan.'},
+        {id:'up_a4', n:'Face pull', set:3, rep:'15', ist:'45 dtk', log:true, otot:'bahu', cue:'Kesehatan bahu. Jangan dilewat.'},
+        {id:'up_a5', n:'Hanging leg raise', set:3, rep:'12', ist:'60 dtk', otot:'perut', cue:'Panggul digulung ke atas, jangan cuma ayun kaki.'},
+        {id:'up_a6', n:'Cable fly', set:3, rep:'12', ist:'60 dtk', log:true, otot:'dada',
+         cue:'Rentangnya lebih panjang dari bench. Tahan sebentar pas dua tangan ketemu.'},
+        {id:'up_a7', n:'EZ-bar curl', set:3, rep:'12', ist:'60 dtk', log:true, otot:'bisep',
+         cue:'Batang EZ lebih enak di pergelangan daripada barbell lurus.'},
+        {id:'up_a8', n:'Overhead rope extension', set:3, rep:'12', ist:'60 dtk', log:true, otot:'trisep',
+         cue:'Siku tetap ngarah ke atas. Kalau sikunya melebar, bebannya kegedean.'},
       ]},
       { n:'Pendinginan & mobilitas', m:10, ex:[
         {id:'up_c1', n:'Mobilitas bahu, dada, punggung atas', set:1, rep:'60 dtk tiap pos', ist:'—',
-         cue:'Besok libur — pakai waktu ini buat beneran pulih.'},
+         cue:'Besok Leg B. Badan atas boleh bener-bener lepas sekarang.'},
       ]},
     ]
   },
@@ -284,21 +321,54 @@ const PROGRAM = {
 };
 
 /* jadwal mingguan — 0 Minggu … 6 Sabtu. Hari lower nggak pernah barengan basket. */
+/* Bodybuilding 5 hari: PPL + Upper/Lower. Tiap otot kena 2x seminggu, dan itu
+   yang paling konsisten kelihatan hasilnya dibanding sekali seminggu.
+   Libur Kamis dan Minggu sengaja dipisah, bukan nempel — pulihnya kebagi rata.
+   lowerA dan ketiga sesi basket nggak dihapus, cuma nggak dijadwalin. Balikin
+   lewat Atur jadwal kalau nanti balik ngejar lompatan. */
 const JADWAL_BAKU = {
-  1: ['lowerA'],
-  2: ['basketA', 'push'],
-  3: ['pull'],
-  4: ['lowerB'],
-  5: ['basketB', 'upper'],
-  6: ['basketC'],
+  1: ['push'],
+  2: ['pull'],
+  3: ['lowerB'],
+  4: [],
+  5: ['upper'],
+  6: ['kaki'],
   0: [],
 };
-const KONTAK_CAP = 200;   // batas kontak plyo per minggu buat level lanjut
+const KONTAK_CAP = 200;   // batas kontak plyo per minggu, dipakai sesi lompat & basket
+
+/* Rem buat program bodybuilding. Yang nentuin pertumbuhan dan juga risiko itu
+   jumlah set kerja per kelompok otot per minggu, bukan kontak lompatan.
+   Di bawah 10 rangsangannya kurang; di atas 20 tambahannya makin kecil
+   sementara capek dan risiko sendinya terus naik.
+   shortcut: set dihitung bulat dari program, bukan dari jumlah baris beban yang
+   beneran diisi. Kalau nanti pencatatan set per set rajin diisi, ganti ke itu. */
+const SET_MIN = 10, SET_MAX = 20;
+const OTOT = [
+  ['dada','Dada'], ['punggung','Punggung'], ['bahu','Bahu'],
+  ['bisep','Bisep'], ['trisep','Trisep'], ['kuadrisep','Paha depan'],
+  ['hamstring','Hamstring'], ['glute','Glute'], ['betis','Betis'], ['perut','Perut'],
+];
 
 /* ---------- helper ---------- */
+/* Jadwal lama waktu masih ngejar vertical jump. Dipakai cuma buat NGENALIN, biar
+   pengguna lama kepindah sendiri ke jadwal bodybuilding. */
+const JADWAL_LOMPAT = {
+  1: ['lowerA'], 2: ['basketA', 'push'], 3: ['pull'],
+  4: ['lowerB'], 5: ['basketB', 'upper'], 6: ['basketC'], 0: [],
+};
+
 function LT(){
   if (!S.latihan) S.latihan = { jadwal: JSON.parse(JSON.stringify(JADWAL_BAKU)), sesi: [], jamIngat:'06:30', ingatLatihan:false };
   if (!S.latihan.jadwal) S.latihan.jadwal = JSON.parse(JSON.stringify(JADWAL_BAKU));
+  /* Jadwal itu kesimpen di data pengguna, jadi ngubah JADWAL_BAKU doang nggak ngaruh
+     ke yang udah kepasang. Pindahin otomatis — TAPI cuma kalau jadwalnya masih persis
+     bawaan lama. Kalau pernah diatur sendiri, jangan disentuh: jadwal buatan sendiri
+     itu keputusan, bukan sisa setelan pabrik. */
+  try{
+    if (JSON.stringify(S.latihan.jadwal) === JSON.stringify(JADWAL_LOMPAT))
+      S.latihan.jadwal = JSON.parse(JSON.stringify(JADWAL_BAKU));
+  }catch(e){}
   if (!S.latihan.sesi) S.latihan.sesi = [];
   if (!S.latihan.ganti) S.latihan.ganti = {};   // { idSlot: idGerakanPengganti }
   return S.latihan;
@@ -325,7 +395,10 @@ function gerakan(slotId){
   const pilih = (LT().ganti || {})[slotId];
   if (!pilih || pilih === slotId) return asli;
   const alt = (typeof ALT !== 'undefined' ? (ALT[slotId] || []) : []).find(x => x.id === pilih);
-  return alt ? { ...alt, slot: slotId } : asli;   // pilihan basi -> balik ke bawaan
+  // otot diwarisin dari slotnya: alternatif wajib sepola sama bawaannya, jadi
+  // kelompok ototnya pasti sama. Tanpa ini, gerakan yang diganti ilang dari
+  // hitungan set per otot dan remnya ngelaporin angka yang kekecilan.
+  return alt ? { otot: asli.otot, ...alt, slot: slotId } : asli;   // pilihan basi -> balik ke bawaan
 }
 
 /* semua pilihan buat satu slot, bawaan selalu yang pertama */
@@ -380,6 +453,23 @@ function sesiKelarMinggu(){
   const hari = mingguIni();
   return LT().sesi.filter(s => hari.includes(s.d) && sesiKelar(s) >= .8).length;
 }
+/* Set kerja per kelompok otot minggu ini. Dihitung dari gerakan yang BENERAN
+   dicentang, bukan dari jadwal — sama alasannya kayak penghitung kontak. */
+function setPerOtot(){
+  const hari = mingguIni(), out = {};
+  LT().sesi.filter(s => hari.includes(s.d)).forEach(s => {
+    const p = sesi(s.sid); if (!p) return;
+    p.blok.forEach(b => b.ex.forEach(e => {
+      if (!e.otot || !(s.ceklis || {})[e.id]) return;
+      // Gerakan majemuk ngelatih lebih dari satu kelompok. Squat itu paha depan
+      // DAN glute — kalau cuma dihitung satu, glute kelihatan nggak kelatih
+      // padahal tiap minggu kena, dan remnya bakal ngomel tanpa alasan.
+      [].concat(e.otot).forEach(k => { out[k] = (out[k] || 0) + (+e.set || 0); });
+    }));
+  });
+  return out;
+}
+
 function volumeAngkat(d){
   const s = LT().sesi.filter(x=>x.d===d);
   return sum(s, x => sum(Object.values(x.set||{}), arr => sum(arr, st => (+st.kg||0) * (+st.rep||0))));
@@ -436,6 +526,9 @@ function renderLatihan(){
   const totalSesi = sum(mgg, x => sesiHari(x).length);
   const doneSesi  = sesiKelarMinggu();
   const kk = kontakMinggu(), vol = volumeMinggu();
+  const so = setPerOtot(), soTotal = sum(Object.values(so));
+  const soKurang = OTOT.filter(([k]) => (so[k] || 0) > 0 && so[k] < SET_MIN).map(([, n]) => n);
+  const soLebih  = OTOT.filter(([k]) => (so[k] || 0) > SET_MAX).map(([, n]) => n);
 
   $('#progBody').innerHTML = `
   <div class="card">
@@ -451,13 +544,27 @@ function renderLatihan(){
         <div class="mid tnum" style="margin-top:3px">${vol>=1000?(vol/1000).toFixed(1).replace('.',',')+' ton':Math.round(vol)+' kg'}</div>
       </div>
       <div style="background:var(--surface-2);border-radius:var(--r-md);padding:11px 12px">
-        <div class="lbl">Kontak lompatan</div>
-        <div class="mid tnum" style="margin-top:3px;color:${kk>KONTAK_CAP?cssv('--c-bad'):kk>KONTAK_CAP*.85?cssv('--c-warn'):'var(--text)'}">${Math.round(kk)}<span class="dim" style="font-size:13px">/${KONTAK_CAP}</span></div>
+        <div class="lbl">Set kerja</div>
+        <div class="mid tnum" style="margin-top:3px">${soTotal}<span class="dim" style="font-size:13px"> set</span></div>
       </div>
     </div>
-    ${kk>KONTAK_CAP*.85?`<div class="xs" style="margin-top:10px;color:var(${kk>KONTAK_CAP?'--c-bad':'--c-warn'})">
-      ${kk>KONTAK_CAP?'Udah lewat batas aman. Kurangi lompatan sisa minggu ini, ganti sesi basket jadi shooting doang.':'Mendekati batas. Sisa minggu ini jangan nambah lompatan di luar program.'}</div>`
-      :`<div class="xs dim" style="margin-top:10px">Batas 200 kontak/minggu buat level lanjut. Lewat dari itu risiko cedera naik tajam.</div>`}
+    ${soTotal ? `<div style="margin-top:13px">
+      ${OTOT.filter(([k])=>so[k]).map(([k,nama])=>{
+        const v = so[k];
+        const w = v > SET_MAX ? '--c-warn' : v >= SET_MIN ? '--c-ok' : '--text-3';
+        return `<div class="row between" style="gap:9px;margin-bottom:6px">
+          <span class="xs dim" style="width:74px;flex:none">${nama}</span>
+          <span class="bar grow" style="height:6px"><i style="width:${clamp(v/SET_MAX*100,4,100).toFixed(0)}%;background:${cssv(w)}"></i></span>
+          <span class="xs tnum" style="width:30px;flex:none;text-align:right;font-weight:700;color:var(${w})">${v}</span>
+        </div>`;
+      }).join('')}
+    </div>` : ''}
+    ${soLebih.length ? `<div class="xs" style="margin-top:8px;color:var(--c-warn)">
+      ${soLebih.join(', ')} udah lewat ${SET_MAX} set minggu ini. Tambahannya makin kecil, capeknya nggak — sisanya mending buat otot lain.</div>`
+      : soKurang.length ? `<div class="xs dim" style="margin-top:8px">
+      ${soKurang.join(', ')} masih di bawah ${SET_MIN} set. Kalau minggunya belum habis, itu wajar.</div>`
+      : `<div class="xs dim" style="margin-top:8px">Sasaran ${SET_MIN}–${SET_MAX} set per otot per minggu. Di bawah itu rangsangannya kurang, di atas itu cuma nambah capek.</div>`}
+    ${kk > KONTAK_CAP ? `<div class="xs" style="margin-top:8px;color:var(--c-bad)">Kontak lompatan ${Math.round(kk)}/${KONTAK_CAP} — lewat batas aman.</div>` : ''}
   </div>
 
   ${hariIni.length ? `<div class="sect"><h2>Hari ini</h2></div>
