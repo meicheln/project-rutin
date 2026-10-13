@@ -158,6 +158,47 @@ export async function jalan(t) {
   t.ok(so.sesudahGanti.dada > 0,
     'set gerakan yang udah diganti tetep kehitung \u2014 kalau nggak, remnya ngelaporin angka kekecilan');
 
+  // ---------- set terakhir & rekor ----------
+  const ref = await page.evaluate(() => {
+    const L = LT(), simpan = L.sesi;
+    L.sesi = [
+      { id:'r1', d:'2026-03-01', sid:'push', ceklis:{}, set:{ pu_m1:[{kg:60,rep:10},{kg:60,rep:9}] } },
+      { id:'r2', d:'2026-03-08', sid:'push', ceklis:{}, set:{ pu_m1:[{kg:65,rep:8},{kg:65,rep:7}] } },
+      // baris kosong nggak boleh keitung sebagai sesi terakhir
+      { id:'r3', d:'2026-03-15', sid:'push', ceklis:{}, set:{ pu_m1:[{kg:'',rep:''}] } },
+    ];
+    const hasil = {};
+    const t = setTerakhir('pu_m1', '2026-03-20');
+    hasil.tanggal = t && t.d;
+    hasil.set0 = t && { kg:t.set[0].kg, rep:t.set[0].rep };
+
+    // sesi hari ini sendiri nggak boleh jadi pembanding
+    hasil.kecualiHariItu = (setTerakhir('pu_m1', '2026-03-08') || {}).d;
+
+    // gerakan yang belum pernah dicatat
+    hasil.belumAda = setTerakhir('pl_m1', '2026-03-20');
+
+    // rekor: 60x10 -> 80,0 ; 65x8 -> 82,3 -> rekornya 82,3
+    hasil.rekor = Math.round(rekorGerakan('pu_m1', '2026-03-20') * 10) / 10;
+    hasil.rekorTanpaSesiTerbaik = Math.round(rekorGerakan('pu_m1', '2026-03-08') * 10) / 10;
+    hasil.rekorKosong = rekorGerakan('pl_m1', '2026-03-20');
+
+    // rep kebangetan dibuang dari rekor, sama kayak grafiknya
+    L.sesi.push({ id:'r4', d:'2026-03-22', sid:'push', ceklis:{}, set:{ pu_m1:[{kg:30,rep:40}] } });
+    hasil.rekorAbaikanRepGila = Math.round(rekorGerakan('pu_m1', '2026-03-25') * 10) / 10;
+
+    L.sesi = simpan;
+    return hasil;
+  });
+  t.eq(ref.tanggal, '2026-03-08', 'yang diambil sesi terakhir yang ADA angkanya, bukan yang kosong');
+  t.eq(ref.set0, { kg:65, rep:8 }, 'set ke-1 sesi terakhir kebaca buat disalin');
+  t.eq(ref.kecualiHariItu, '2026-03-01', 'sesi yang lagi dikerjain nggak dipakai jadi pembandingnya sendiri');
+  t.eq(ref.belumAda, null, 'gerakan yang belum pernah dicatat balik null, nggak nabrak');
+  t.eq(ref.rekor, 82.3, 'rekor 1RM diambil dari set terbaik lintas sesi');
+  t.eq(ref.rekorTanpaSesiTerbaik, 80, 'sesi yang dikecualiin nggak ikut ngitung rekor');
+  t.eq(ref.rekorKosong, 0, 'gerakan tanpa riwayat rekornya nol \u2014 jadi sesi pertama nggak diklaim rekor');
+  t.eq(ref.rekorAbaikanRepGila, 82.3, 'set di atas 12 rep dibuang dari rekor, sama kayak di grafik');
+
   // ---------- progres beban ----------
   const progres = await page.evaluate(() => {
     const L = LT();
@@ -393,6 +434,58 @@ export async function jalan(t) {
   await page.click('#jlReset'); await page.waitForTimeout(500);
   t.eq(await page.evaluate(() => JSON.stringify(LT().jadwal) === JSON.stringify(JADWAL_BAKU)), true,
     'tombol kembalikan ngebalikin jadwal bawaan');
+
+  // ---------- ketuk set terakhir & toast rekor (lewat UI) ----------
+  const ui = await page.evaluate(async () => {
+    const L = LT(), simpan = L.sesi;
+    L.sesi = [
+      { id:'u1', d:addDays(today(), -14), sid:'push', ceklis:{}, set:{ pu_m1:[{kg:60,rep:10},{kg:60,rep:9}] } },
+      { id:'u2', d:addDays(today(), -7),  sid:'push', ceklis:{}, set:{ pu_m1:[{kg:65,rep:8},{kg:65,rep:8}] } },
+    ];
+    commit(false);
+    bukaSesi('push');
+    await new Promise(r => setTimeout(r, 500));
+    const h = {};
+
+    const tombol = document.querySelector('[data-isi^="pu_m1|0"]');
+    h.adaTombol = !!tombol;
+    h.labelTombol = tombol && tombol.textContent.trim();
+    tombol.click();
+    await new Promise(r => setTimeout(r, 200));
+    h.kg  = document.querySelector('[data-setkg="pu_m1"][data-i="0"]').value;
+    h.rep = document.querySelector('[data-setrep="pu_m1"][data-i="0"]').value;
+    // yang kesalin harus bener-bener masuk ke data, bukan cuma nempel di kotaknya
+    h.kesimpan = JSON.stringify((bukaLog(sesiAktif.d, sesiAktif.sid).set || {}).pu_m1?.[0]);
+
+    // 65x8 = 82,3. 70x9 = 91,0 -> rekor baru
+    const ikg  = document.querySelector('[data-setkg="pu_m1"][data-i="1"]');
+    const irep = document.querySelector('[data-setrep="pu_m1"][data-i="1"]');
+    ikg.value = '70';  ikg.dispatchEvent(new Event('input', { bubbles:true }));
+    irep.value = '9';  irep.dispatchEvent(new Event('input', { bubbles:true }));
+    await new Promise(r => setTimeout(r, 200));
+    h.toast = document.getElementById('toast').textContent;
+
+    // cuma sekali per gerakan per sesi
+    document.getElementById('toast').textContent = '';
+    const a = document.querySelector('[data-setkg="pu_m1"][data-i="0"]');
+    const b = document.querySelector('[data-setrep="pu_m1"][data-i="0"]');
+    a.value = '80'; a.dispatchEvent(new Event('input', { bubbles:true }));
+    b.value = '9';  b.dispatchEvent(new Event('input', { bubbles:true }));
+    await new Promise(r => setTimeout(r, 200));
+    h.toastKedua = document.getElementById('toast').textContent;
+
+    tutupSesi();
+    await new Promise(r => setTimeout(r, 400));
+    L.sesi = simpan; commit(false);
+    return h;
+  });
+  t.ok(ui.adaTombol, 'tombol set terakhir kegambar di baris set');
+  t.eq(ui.labelTombol, '65\u00d78', 'tombolnya nunjukin kg\u00d7rep sesi terakhir');
+  t.eq(ui.kg, '65', 'ketuk tombolnya ngisi kolom kg');
+  t.eq(ui.rep, '8', 'ketuk tombolnya ngisi kolom rep');
+  t.eq(ui.kesimpan, '{"kg":"65","rep":"8"}', 'yang kesalin beneran masuk ke data, bukan cuma nempel di kotak');
+  t.ok(/Rekor baru/.test(ui.toast) && /70kg/.test(ui.toast), `rekor baru diumumin: ${ui.toast}`);
+  t.eq(ui.toastKedua, '', 'rekor cuma diumumin sekali per gerakan per sesi, bukan tiap ketikan');
 
   t.ok(app.galat.length === 0, 'nggak ada galat di console: ' + app.galat.join(' | '));
   await app.tutup();

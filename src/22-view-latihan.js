@@ -514,6 +514,30 @@ function gerakanBerprogres(minTitik = 2){
     .sort((a, b) => b.titik.length - a.titik.length);
 }
 
+/* Set dari sesi TERAKHIR gerakan ini kecatat. Ini kolom yang ada di tiap
+   aplikasi angkat beban serius, dan alasannya sederhana: pas lo berdiri di
+   depan barbell, yang lo butuh itu angka minggu lalu — bukan grafik. */
+function setTerakhir(exId, kecualiTgl){
+  const s = LT().sesi
+    .filter(x => x.d !== kecualiTgl && (x.set?.[exId] || []).some(v => v && +v.kg && +v.rep))
+    .sort((a, b) => a.d < b.d ? 1 : -1)[0];
+  return s ? { d: s.d, set: s.set[exId] } : null;
+}
+
+/* Perkiraan 1RM terbaik dari sesi sebelum hari ini — pembanding buat rekor baru. */
+function rekorGerakan(exId, kecualiTgl){
+  let best = 0;
+  LT().sesi.forEach(s => {
+    if (s.d === kecualiTgl) return;
+    (s.set?.[exId] || []).forEach(v => {
+      const kg = +v.kg || 0, rep = +v.rep || 0;
+      if (!kg || !rep || rep > 12) return;
+      best = Math.max(best, epley(kg, rep));
+    });
+  });
+  return best;
+}
+
 function sesiTerakhir(n=5){
   return [...LT().sesi].filter(s=>sesiKelar(s)>0).sort((a,b)=>a.d<b.d?1:-1).slice(0,n);
 }
@@ -673,7 +697,9 @@ function renderLatihan(){
 /* ---------- panel sesi (layar penuh) ---------- */
 let sesiAktif = null, timerIst = null;
 
+const prSudah = new Set();   // gerakan yang rekornya udah diumumin di sesi ini
 function bukaSesi(sid, tglSesi){
+  prSudah.clear();
   const p = sesi(sid); if (!p) return;
   sesiAktif = { sid, d: tglSesi || today() };
   const s = bukaLog(sesiAktif.d, sid);
@@ -757,10 +783,17 @@ function gambarSesi(){
             </div>
             <div class="excue" id="cue_${e.id}">${esc(e.cue||'')}</div>
             ${e.log?`<div class="exsets">
+              ${(()=>{ const l = setTerakhir(e.id, d);
+                return l ? `<div class="xs dim" style="margin:-2px 0 2px">Terakhir ${tgl(l.d)} · ketuk angkanya buat nyalin</div>` : ''; })()}
               ${[...Array(e.set)].map((_,i)=>{
                 const v = set[i] || {};
+                const lalu = (setTerakhir(e.id, d) || {set:[]}).set[i] || {};
+                const adaLalu = +lalu.kg && +lalu.rep;
                 return `<div class="setrow">
                   <span class="setno tnum">${i+1}</span>
+                  ${adaLalu
+                    ? `<button class="setlalu tnum press" data-isi="${e.id}|${i}|${lalu.kg}|${lalu.rep}">${lalu.kg}×${lalu.rep}</button>`
+                    : `<span class="setlalu kosong">–</span>`}
                   <input class="setinp tnum" inputmode="decimal" placeholder="kg" value="${v.kg??''}" data-setkg="${e.id}" data-i="${i}">
                   <span class="setx">×</span>
                   <input class="setinp tnum" inputmode="numeric" placeholder="rep" value="${v.rep??''}" data-setrep="${e.id}" data-i="${i}">
@@ -936,7 +969,7 @@ function sheetJadwalLatihan(){
 
 /* ---------- delegasi khusus latihan ---------- */
 document.addEventListener('click', ev=>{
-  const t = ev.target.closest('[data-mulai],[data-lihat],[data-riwayat],[data-exceklis],[data-excue],[data-ist],[data-rasa],[data-ganti],[data-pilihgerak],#sesTutup');
+  const t = ev.target.closest('[data-mulai],[data-lihat],[data-riwayat],[data-exceklis],[data-excue],[data-ist],[data-rasa],[data-ganti],[data-pilihgerak],[data-isi],#sesTutup');
   if (!t) return;
   const dd = t.dataset;
   if (t.id === 'sesTutup'){ tutupSesi(); return; }
@@ -958,6 +991,17 @@ document.addEventListener('click', ev=>{
     toast('Diganti jadi ' + gerakan(slotId).n, 2600);
     return;
   }
+  if (dd.isi && sesiAktif){
+    const [exId, i, kg, rep] = dd.isi.split('|');
+    const ikg = $(`[data-setkg="${exId}"][data-i="${i}"]`), irep = $(`[data-setrep="${exId}"][data-i="${i}"]`);
+    if (ikg && irep){
+      ikg.value = kg; irep.value = rep;
+      ikg.dispatchEvent(new Event('input', {bubbles:true}));
+      irep.dispatchEvent(new Event('input', {bubbles:true}));
+      buzz(10);
+    }
+    return;
+  }
   if (dd.rasa && sesiAktif){
     const s = bukaLog(sesiAktif.d, sesiAktif.sid);
     s.rasa = s.rasa === +dd.rasa ? 0 : +dd.rasa;
@@ -974,5 +1018,17 @@ document.addEventListener('input', ev=>{
   while (s.set[exId].length <= i) s.set[exId].push({});
   s.set[exId][i][el.dataset.setkg ? 'kg' : 'rep'] = el.value;
   S.updatedAt = Date.now(); LS.set('rutin.state', S); Store.save();
+
+  // Rekor baru. Diumumin sekali per gerakan per sesi — tiap ketikan manggil
+  // handler ini, dan toast yang nongol tiap huruf itu bukan kabar baik lagi.
+  const b = s.set[exId][i], kg = +b.kg || 0, rep = +b.rep || 0;
+  if (!kg || !rep || rep > 12 || prSudah.has(exId)) return;
+  const lama = rekorGerakan(exId, sesiAktif.d);
+  if (!lama || epley(kg, rep) <= lama) return;
+  prSudah.add(exId);
+  const nama = (SLOT[exId] ? SLOT[exId].ex.n
+    : (Object.values(typeof ALT !== 'undefined' ? ALT : {}).flat().find(x => x.id === exId) || {}).n) || 'Gerakan ini';
+  toast(`🏆 Rekor baru ${nama} — ${kg}kg × ${rep}`, 3200);
+  buzz(24);
 });
 </script>
