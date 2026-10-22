@@ -115,8 +115,30 @@ Ditulis duluan biar nggak jadi alasan belakangan.
 
 ```
 Pengecualian selama pembekuan:
-(kosong per 15 Oktober 2026)
+(kosong per 23 Oktober 2026 — nol rilis, pembekuannya kepegang)
 ```
+
+### Catatan hari ke-8 (23 Oktober)
+
+Penggunanya ngelapor sendiri, tanpa ditanya: **"gua lupa pake terus karna
+kurang tertarik sama aplikasinya."**
+
+Ini hasil, bukan keluhan. Dan dia lebih kuat dari apa pun yang bakal keluar
+dari ngitung baris di hari 14, karena dia jawab pertanyaan yang lebih dasar
+dari "modul mana yang mati": **aplikasinya secara keseluruhan nggak narik.**
+
+Temuan yang nyertain: **ketiga saklar notifikasi masih mati** —
+`settings.ingatkan` (false bawaan), `latihan.ingatLatihan` (false bawaan),
+dan `ingat` per agenda (0 bawaan). Artinya selama 8 hari ini aplikasinya
+**nggak punya satu pun cara buat nyapa dia duluan.** Dia harus inget sendiri,
+dan dia bilang dia nggak inget.
+
+Itu bukan celah fitur — sistemnya udah jadi, lengkap sama balasan langsung
+dari notification shade. Dia cuma nggak pernah dinyalain.
+
+Jadi apa pun angka di hari 14, dia ngukur aplikasi yang nggak pernah
+ngomong duluan. Itu batasan yang lebih gede dari enam yang ditulis di atas,
+dan dia ketemu di tengah jalan, bukan di awal.
 
 ---
 
