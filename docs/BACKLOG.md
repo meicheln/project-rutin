@@ -32,6 +32,16 @@ kode.**
   ditunda. Dua modul yang hidup dulu dibuktiin berguna
 - Telegram (Fase 4), kalender ICS (Fase 5), penjadwalan terdelegasi (Fase 6)
 
+## Ketemu selama pembekuan (nggak dibenerin, nggak kritis)
+
+- **Saklar "Ingetin di hari latihan" nggak langsung ngejadwalin.** `jlNotif`
+  cuma manggil `commit(false)`; `Notif.apply()` baru kepanggil dari
+  `jlSimpan` atau pas boot berikutnya. Saklar saudaranya di Pengaturan
+  (`stNotif`) manggil dua-duanya. Akibatnya: nyalain saklar tanpa mencet
+  Simpan = saklarnya nyala tapi notifikasinya nggak pernah jalan.
+  Beda perilaku antara dua saklar yang kelihatan sama itu jebakan.
+  Sementara: pencet Simpan. (23 Okt)
+
 ## Utang yang belum dibayar
 
 - `rutin_galat` masih 0 baris — penyebab error asisten masih belum kebaca
