@@ -117,6 +117,56 @@ export async function jalan(t) {
   t.ok(chat.sesudah.ukuran < 70000, `ukurannya ketahan di bawah batas (${chat.sesudah.ukuran} karakter)`);
   t.ok(chat.sesudah.mulaiUser, 'potongannya berhenti di giliran user — API nolak riwayat yang nggak');
 
+  // ---------- server mati jangan ngunci orang di luar aplikasinya ----------
+  // Ini kejadian beneran: proyek Supabase gratis dipause sesudah seminggu nganggur,
+  // domainnya dicopot, Cloud.restore() gagal, dan pemiliknya nyangkut di layar
+  // login yang nggak mungkin dia lewatin \u2014 padahal semua datanya ada di HP.
+  const kunci = await page.evaluate(async () => {
+    const simpanCfg = Cloud.cfg, simpanFetch = window.fetch;
+    const h = {};
+
+    Cloud.cfg = { url:'https://contoh-mati.supabase.co', key:'kunci-publik-palsu' };
+
+    // server mati total: fetch ngelempar
+    window.fetch = async () => { throw new TypeError('Failed to fetch'); };
+    h.matiTotal = await Cloud.kegapai();
+
+    // server nyaut tapi nolak (sesi abis) \u2014 ini HARUS kebaca kegapai
+    window.fetch = async () => ({ status: 401, ok: false });
+    h.nolakTapiHidup = await Cloud.kegapai();
+
+    // server sehat
+    window.fetch = async () => ({ status: 200, ok: true });
+    h.sehat = await Cloud.kegapai();
+
+    // server error 5xx dianggap nggak kegapai
+    window.fetch = async () => ({ status: 503, ok: false });
+    h.limaRatus = await Cloud.kegapai();
+
+    // belum diatur sama sekali
+    Cloud.cfg = null;
+    h.belumDiatur = await Cloud.kegapai();
+
+    Cloud.cfg = simpanCfg; window.fetch = simpanFetch;
+    return h;
+  });
+  t.eq(kunci.matiTotal, false, 'server yang nggak nyaut kebaca nggak kegapai');
+  t.eq(kunci.nolakTapiHidup, true,
+    'server yang nolak dengan 401 tetap kebaca HIDUP \u2014 itu sesi abis, bukan server mati');
+  t.eq(kunci.sehat, true, 'server sehat kebaca kegapai');
+  t.eq(kunci.limaRatus, false, '5xx dianggap nggak kegapai');
+  t.eq(kunci.belumDiatur, false, 'tanpa konfigurasi, nggak usah ngaku kegapai');
+
+  // jalur masuk lokal nggak boleh nyentuh data
+  const lewat = await page.evaluate(() => {
+    const sebelum = JSON.stringify({ tx:S.txns.length, hari:Object.keys(S.days).length });
+    LS.set('rutin.mode', 'local');
+    const sesudah = JSON.stringify({ tx:S.txns.length, hari:Object.keys(S.days).length });
+    return { sama: sebelum === sesudah, mode: LS.get('rutin.mode', null) };
+  });
+  t.ok(lewat.sama, 'pindah ke mode lokal nggak ngubah data sedikit pun');
+  t.eq(lewat.mode, 'local', 'mode lokal kesimpen');
+
   // ---------- aturan menang-mana waktu sinkron ----------
   // Dites lewat Cloud.syncDown() beneran, bukan lewat salinan aturannya. Versi lama
   // spec ini nulis ulang logikanya di dalam tes, jadi bug "pemasangan baru nimpa

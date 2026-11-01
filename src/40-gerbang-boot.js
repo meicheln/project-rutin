@@ -173,7 +173,16 @@ function gate(step){
   if (Cloud.configured()){
     const ok = await Cloud.restore();
     if (ok){ closeGate(); setSync('ok'); Cloud.syncDown(); return; }
-    if (mode === 'cloud'){ openGate('auth'); return; }
+    /* Sesi gagal dipulihin bisa karena dua hal, dan cuma satu yang pantes
+       dibalas layar login. Kalau servernya yang mati, ngunci orang di layar
+       yang nggak mungkin dia lewatin itu bikin seluruh aplikasi nggak kepakai
+       gara-gara backend — padahal datanya ada di HP ini dan nggak butuh server
+       sama sekali. Masuk aja, tandain sinkronnya merah; begitu servernya balik,
+       boot berikutnya nyambung sendiri. */
+    if (mode === 'cloud'){
+      if (await Cloud.kegapai()){ openGate('auth'); return; }
+      closeGate(); setSync('err'); return;
+    }
   }
   if (mode === 'local'){ closeGate(); return; }
   openGate('intro');

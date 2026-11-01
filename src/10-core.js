@@ -323,6 +323,21 @@ const Cloud = {
     return this.sb;
   },
 
+  /* Servernya kegapai apa nggak. Ini dipakai buat bedain dua hal yang kelihatan
+     sama dari luar: sesi yang abis (harus login lagi) dan server yang mati
+     (jangan ngunci siapa pun — datanya ada di HP ini).
+     Ditanya langsung, bukan ditebak dari teks error: bentuk pesan galat
+     beda-beda antar versi supabase-js dan antar browser, dan nebak dari situ
+     itu persis cara kita kepeleset dulu. */
+  async kegapai(){
+    if (!this.configured()) return false;
+    try{
+      const r = await fetch(this.cfg.url.replace(/\/+$/, '') + '/auth/v1/health',
+        { method:'GET', headers:{ apikey: this.cfg.key } });
+      return r.status < 500;   // 200 sehat, 4xx tetap berarti servernya nyaut
+    }catch(e){ return false; }
+  },
+
   async restore(){
     if (!this.configured()) return false;
     try{
