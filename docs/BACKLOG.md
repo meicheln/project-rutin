@@ -32,6 +32,19 @@ kode.**
   ditunda. Dua modul yang hidup dulu dibuktiin berguna
 - Telegram (Fase 4), kalender ICS (Fase 5), penjadwalan terdelegasi (Fase 6)
 
+## Ketemu 1 November
+
+- **Jalur cadangan asisten mati buat setelan sekarang.** `aiReqLangsung`
+  nembak ke `api.anthropic.com`; dia dibangun waktu masih pakai Anthropic.
+  Begitu pindah ke Gemini, penerjemahnya pindah ke Edge Function
+  (`gemini.ts`), dan jalur cadangan itu jadi kode mati — butuh kunci
+  Anthropic yang nggak ada.
+  Akibatnya: **kalau Supabase mati, asistennya mati total, nggak ada
+  cadangan sama sekali.**
+  Jangan dibenerin dengan naruh kunci Gemini di HP — itu ngebalikin
+  keputusan keamanan yang sengaja diambil. Kalau mau dibenerin, pilihannya
+  proksi kedua di tempat lain, dan itu bukan pekerjaan kecil.
+
 ## Ketemu selama pembekuan (nggak dibenerin, nggak kritis)
 
 - **Saklar "Ingetin di hari latihan" nggak langsung ngejadwalin.** `jlNotif`
