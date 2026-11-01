@@ -857,6 +857,12 @@ async function aiSend(text){
       : /API key not valid|invalid.*api.*key|authentication_error|401/i.test(m) ? 'Kunci API-nya ditolak. Cek secret di Edge Function.'
       : /is not found for API version|models\/[\w.-]+ is not found|NOT_FOUND/i.test(m) ? 'Model yang dipilih nggak ada di akun ini. Ganti modelnya di pengaturan asisten.'
       : /rate limit|RESOURCE_EXHAUSTED|429/i.test(m) ? 'Kena batas kecepatan penyedia. Tunggu sebentar terus coba lagi.'
+      /* Server nggak kegapai sama sekali. Penyebab paling sering di proyek Supabase
+         gratis: dia otomatis di-pause sesudah seminggu nggak ada aktivitas, dan
+         domainnya ikut dicopot — jadi fetch gagal sebelum nyampe mana-mana.
+         Dulu ini kebaca 'Gagal: Failed to fetch' doang, yang nggak nolong siapa pun. */
+      : /Failed to fetch|NetworkError|ERR_NAME_NOT_RESOLVED|ERR_INTERNET_DISCONNECTED|ERR_CONNECTION|Load failed|ENOTFOUND|getaddrinfo|network ?error/i.test(m)
+        ? 'Servernya nggak kegapai. Kalau internet lo jalan, kemungkinan besar proyek Supabase-nya ketiduran — proyek gratis di-pause otomatis kalau seminggu nggak dipakai. Buka dashboard Supabase, pilih proyeknya, pencet Restore project. Catatan lo di HP aman, nggak ada yang keapus.'
       : null;
     aiBubble('ai', ramah || ('Gagal: ' + m));
   }finally{

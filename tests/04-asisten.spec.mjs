@@ -150,6 +150,27 @@ export async function jalan(t) {
   const pesanSaldo = await page.evaluate(() => document.querySelector('#aiLog .msg.ai:last-child').textContent);
   t.ok(/saldo/i.test(pesanSaldo), 'galat saldo habis dijelasin pakai bahasa manusia');
 
+  // Server nggak kegapai. Ini yang kejadian beneran pas proyek Supabase-nya
+  // dipause: domainnya dicopot, fetch gagal, dan dulu pesannya cuma
+  // "Gagal: Failed to fetch" \u2014 jujur tapi nol gunanya.
+  for (const pesan of ['Failed to fetch', 'NetworkError when attempting to fetch resource',
+                       'net::ERR_NAME_NOT_RESOLVED', 'Load failed']) {
+    await page.evaluate(m => { AI.raw = []; window.aiReq = async () => { throw new Error(m); }; }, pesan);
+    await page.fill('#aiText', 'tes jaringan'); await page.click('#aiSend'); await page.waitForTimeout(900);
+    const teks = await page.evaluate(() => document.querySelector('#aiLog .msg.ai:last-child').textContent);
+    t.ok(/nggak kegapai/i.test(teks) && /Restore project/i.test(teks),
+      `"${pesan}" diterjemahin jadi petunjuk Restore project`);
+    t.ok(/aman/i.test(teks), `"${pesan}" sekalian nenangin soal datanya`);
+    t.ok(!/Failed to fetch/i.test(teks), `"${pesan}" nggak dilempar mentah ke layar`);
+  }
+
+  // galat yang nggak kekenal tetap ditampilin apa adanya, jangan ditebak-tebak
+  await page.evaluate(() => { AI.raw = []; window.aiReq = async () => { throw new Error('galat_aneh_yang_belum_pernah_ada'); }; });
+  await page.fill('#aiText', 'tes aneh'); await page.click('#aiSend'); await page.waitForTimeout(900);
+  const pesanAneh = await page.evaluate(() => document.querySelector('#aiLog .msg.ai:last-child').textContent);
+  t.ok(/galat_aneh_yang_belum_pernah_ada/.test(pesanAneh),
+    'galat yang nggak kekenal ditampilin apa adanya, bukan ditebak jadi pesan lain');
+
   t.ok(app.galat.length === 0, 'nggak ada galat di console: ' + app.galat.join(' | '));
   await app.tutup();
 }

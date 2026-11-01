@@ -1,0 +1,48 @@
+# Supabase gratis nge-pause proyek yang nggak ada aktivitas ~7 hari, dan pas
+# dipause domainnya ikut dicopot — asisten sama sinkron langsung mati total.
+#
+# Itu beneran kejadian: pemiliknya berhenti pakai aplikasinya seminggu, proyeknya
+# ikut nganggur, Supabase matiin, dan pas dia mau pakai lagi asistennya udah mati.
+#
+# Penjaga ini manggil Edge Function-nya tiap 3 hari. Balasannya 401 (nggak bawa
+# JWT) dan itu justru yang dimau — 401 artinya fungsinya BENERAN JALAN, dan
+# pemanggilan fungsi itu aktivitas yang dihitung Supabase. Ping ke REST doang
+# belum tentu kehitung.
+#
+# Ini nggak bisa ngebangunin proyek yang TERLANJUR dipause — itu harus dipencet
+# sendiri dari dashboard. Dia cuma nahan biar nggak sampai dipause.
+name: Jaga Supabase
+
+on:
+  schedule:
+    - cron: '17 2 */3 * *'    # tiap 3 hari, 02:17 UTC — jam ganjil biar nggak numpuk sama cron orang sedunia
+  workflow_dispatch:           # bisa dipencet manual dari tab Actions
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Panggil Edge Function
+        env:
+          URL: ${{ secrets.SUPABASE_URL }}
+        run: |
+          if [ -z "$URL" ]; then
+            echo "::warning::Secret SUPABASE_URL belum diisi — penjaga nggak jalan."
+            echo "Isi di Settings > Secrets and variables > Actions, isinya:"
+            echo "  https://<ref-proyek>.supabase.co"
+            exit 0
+          fi
+          ep="${URL%/}/functions/v1/asisten"
+          kode=$(curl -s -o /dev/null -w '%{http_code}' --max-time 30 "$ep" || echo 000)
+          echo "HTTP $kode dari $ep"
+          case "$kode" in
+            401|403)
+              echo "Fungsinya jalan dan nolak permintaan tanpa JWT — persis yang diharapin. Proyeknya hidup." ;;
+            000)
+              echo "::error::Nggak kegapai sama sekali. Proyeknya kemungkinan udah terlanjur dipause — buka dashboard Supabase lalu pencet Restore project. Penjaga ini nggak bisa ngebangunin yang udah tidur."
+              exit 1 ;;
+            2*)
+              echo "::warning::Balasannya $kode, bukan 401. Aneh buat permintaan tanpa JWT — cek pengecekan auth di Edge Function." ;;
+            *)
+              echo "::warning::Balasannya $kode. Proyeknya kegapai, tapi bukan jawaban yang diharapin." ;;
+          esac
