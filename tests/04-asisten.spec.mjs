@@ -173,52 +173,6 @@ export async function jalan(t) {
   t.ok(/galat_aneh_yang_belum_pernah_ada/.test(pesanAneh),
     'galat yang nggak kekenal ditampilin apa adanya, bukan ditebak jadi pesan lain');
 
-  // ---------- kandang asisten lokal ----------
-  // Model yang muat di HP itu kecil dan gampang salah milih alat. 21 dari 25 alat
-  // nulis ke data penggunanya, jadi salah pilih = catatan kena. Kandangnya diuji
-  // di sini, bukan dipercaya dari instruksi sistem.
-  const kandang = await page.evaluate(() => ({
-    boleh: AL.alat().map(t => t.name),
-    diblokir: AL.diblokir().length,
-    total: AI_TOOLS.length,
-    tumpang: AL.alat().filter(a => AL.diblokir().some(b => b.name === a.name)).length,
-    tulisDitolak: AL.boleh('catat_transaksi'),
-    bacaDiterima: AL.boleh('baca_data'),
-    ngarang: AL.boleh('hapus_semua_data'),
-  }));
-  t.ok(kandang.boleh.length > 0, 'model lokal tetap dapat alat baca');
-  t.ok(kandang.boleh.every(n => /^baca_/.test(n)),
-    'nol alat yang nulis bocor ke model lokal: ' + kandang.boleh.join(', '));
-  t.eq(kandang.boleh.length + kandang.diblokir, kandang.total, 'tiap alat kebagi, nggak ada yang kelewat');
-  t.eq(kandang.tumpang, 0, 'nggak ada alat yang kehitung dua-duanya');
-  t.ok(!kandang.tulisDitolak, 'alat yang nulis ditolak di lapis kedua');
-  t.ok(kandang.bacaDiterima, 'alat baca lolos lapis kedua');
-  t.ok(!kandang.ngarang, 'nama alat karangan ditolak, bukan dianggap boleh');
-
-  // daftarnya disaring dari AI_TOOLS, bukan diketik ulang — alat baru nggak boleh
-  // diam-diam keikut cuma karena seseorang lupa ngurus daftarnya
-  const alatBaru = await page.evaluate(() => {
-    AI_TOOLS.push({ name:'hapus_segalanya', description:'alat palsu buat tes', input_schema:{type:'object'} });
-    const h = { boleh: AL.boleh('hapus_segalanya'), masukDaftar: AL.alat().some(t => t.name === 'hapus_segalanya') };
-    AI_TOOLS.pop();
-    return h;
-  });
-  t.ok(!alatBaru.boleh && !alatBaru.masukDaftar,
-    'alat baru yang nulis otomatis keblokir tanpa ada yang perlu ngapa-ngapain');
-
-  const vonis = await page.evaluate(() => ({
-    mati:   AL.vonis({ gpu:false, catatan:'navigator.gpu nggak ada sama sekali' })[0],
-    sempit: AL.vonis({ gpu:true, buf:4096, ram:2 })[0],
-    kecil:  AL.vonis({ gpu:true, buf:256, ram:8 })[0],
-    bisa:   AL.vonis({ gpu:true, buf:4096, ram:8 })[0],
-    diam:   AL.vonis({ gpu:true, buf:0, ram:0 })[0],
-  }));
-  t.eq(vonis.mati, 'nggak', 'tanpa WebGPU divonis nggak sanggup');
-  t.eq(vonis.sempit, 'sempit', 'RAM kurang divonis mepet');
-  t.eq(vonis.kecil, 'sempit', 'buffer kekecilan divonis mepet');
-  t.eq(vonis.bisa, 'bisa', 'WebGPU plus RAM cukup divonis sanggup');
-  t.eq(vonis.diam, 'bisa', 'HP yang nggak ngelaporin RAM nggak dihukum duluan');
-
   // ---------- jalur lokal pas server mati ----------
   // Dulu kotak asisten mati total kalau nggak ada jalur ke model: barnya disembunyiin
   // dan nggak ada yang bisa diketik. Padahal pengurai balasan notifikasi jalan tanpa
@@ -274,6 +228,69 @@ export async function jalan(t) {
   t.eq(jatuh.tx, sblm3 + 1, 'server gagal, catatannya tetap masuk lewat pengurai lokal');
   t.eq(jatuh.amt, 15000, 'jumlahnya bener walau servernya mati');
   t.ok(/nggak kegapai/.test(jatuh.log), 'sebab gagalnya tetap dikasih tau, bukan ditutupin');
+
+  // ---------- kandang model lokal ----------
+  // Kandangnya bukan daftar putih alat, tapi nggak ada alat sama sekali: model
+  // cuma dikasih potret data buat dibaca, dan jawabannya dipakai sebagai teks.
+  const sys = await page.evaluate(() => AL.sys());
+  t.ok(/hari_ini/.test(sys), 'instruksi model lokal bawa potret datanya');
+  t.ok(/jangan ngarang angka/i.test(sys), 'model lokal dilarang ngarang angka');
+  t.ok(/nggak bisa nyatet|nggak bisa ngubah/i.test(sys), 'model lokal dikasih tau dia nggak bisa nulis');
+  t.ok(!/tool|input_schema|catat_transaksi/.test(sys),
+    'nol definisi alat masuk ke instruksi model lokal');
+  t.ok(await page.evaluate(() => AL.pipe === null && !AL.nyala()),
+    'model lokal mati sampai penggunanya sendiri yang ngunduh');
+
+  // Ini intinya: model yang NYOBA manggil alat cuma kerender jadi teks.
+  // Nggak ada pelaksana di jalur ini, jadi nggak ada yang bisa dieksekusi.
+  await page.evaluate(() => {
+    Cloud.ready = false; AI.cfg = { key:'', model:'' }; AI.save(); AI.raw = [];
+    LS.set('rutin.alNyala', 1);
+    AL.muat = async () => async () => [{ generated_text: [
+      { role:'user', content:'x' },
+      { role:'assistant', content:'{"name":"catat_transaksi","input":{"jumlah":9999999,"kategori":"makan"}}' },
+    ] }];
+    paintAI();
+  });
+  const sblmJahat = await page.evaluate(() => S.txns.length);
+  await page.fill('#aiText', 'tolong catat pengeluaran gede'); await page.click('#aiSend');
+  await page.waitForTimeout(900);
+  const jahat = await page.evaluate(() => ({
+    tx: S.txns.length,
+    balasan: [...document.querySelectorAll('#aiLog .msg.ai')].pop().textContent,
+  }));
+  t.eq(jahat.tx, sblmJahat, 'model yang nyoba manggil alat nulis nggak bikin transaksi satu pun');
+  t.ok(/catat_transaksi/.test(jahat.balasan), 'percobaannya kerender jadi teks biasa, bukan dieksekusi');
+  t.ok(/model lokal/i.test(jahat.balasan), 'jawaban model lokal ditandain, biar nggak ketuker sama yang dari server');
+
+  // pola jalan duluan: kalimat yang jelas catatan nggak usah lewat model
+  await page.evaluate(() => { AL.dipanggil = 0; const asli = AL.muat;
+    AL.muat = async (...a) => { AL.dipanggil++; return asli.apply(AL, a); }; });
+  await page.fill('#aiText', '5rb parkir'); await page.click('#aiSend'); await page.waitForTimeout(700);
+  const urutan = await page.evaluate(() => ({ dipanggil: AL.dipanggil, amt: S.txns[S.txns.length-1].amt }));
+  t.eq(urutan.dipanggil, 0, 'kalimat yang kebaca sebagai catatan nggak nyentuh model sama sekali');
+  t.eq(urutan.amt, 5000, 'dan tetap kecatat lewat pencocokan pola');
+
+  // dimatiin = balik ke pencatatan doang, nggak diem-diem nyala lagi
+  await page.evaluate(() => { AL.matikan(); AI.raw = []; paintAI(); });
+  await page.fill('#aiText', 'bulan ini gimana'); await page.click('#aiSend'); await page.waitForTimeout(700);
+  const mati = await page.evaluate(() => ({ nyala: AL.nyala(), pipe: AL.pipe,
+    balasan: [...document.querySelectorAll('#aiLog .msg.ai')].pop().textContent }));
+  t.ok(!mati.nyala && mati.pipe === null, 'dimatiin beneran mati, bukan cuma disembunyiin');
+  t.ok(/pencatatan cepat/i.test(mati.balasan), 'tanpa model, balikin ke petunjuk pencatatan');
+
+  const vonis = await page.evaluate(() => ({
+    mati:   AL.vonis({ gpu:false, catatan:'navigator.gpu nggak ada sama sekali' })[0],
+    sempit: AL.vonis({ gpu:true, buf:4096, ram:2 })[0],
+    kecil:  AL.vonis({ gpu:true, buf:256, ram:8 })[0],
+    bisa:   AL.vonis({ gpu:true, buf:4096, ram:8 })[0],
+    diam:   AL.vonis({ gpu:true, buf:0, ram:0 })[0],
+  }));
+  t.eq(vonis.mati, 'nggak', 'tanpa WebGPU divonis nggak sanggup');
+  t.eq(vonis.sempit, 'sempit', 'RAM kurang divonis mepet');
+  t.eq(vonis.kecil, 'sempit', 'buffer kekecilan divonis mepet');
+  t.eq(vonis.bisa, 'bisa', 'WebGPU plus RAM cukup divonis sanggup');
+  t.eq(vonis.diam, 'bisa', 'HP yang nggak ngelaporin RAM nggak dihukum duluan');
 
   t.ok(app.galat.length === 0, 'nggak ada galat di console: ' + app.galat.join(' | '));
   await app.tutup();

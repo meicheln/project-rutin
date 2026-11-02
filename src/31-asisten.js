@@ -836,6 +836,22 @@ function aiLokal(text){
   return true;
 }
 
+/* Nanya ke model yang jalan di HP. Dia nggak dikasih alat sama sekali — cuma
+   potret data buat dibaca — jadi jalur ini nggak bisa ngubah apa pun. */
+async function aiTanyaLokal(text){
+  aiThinking(true);
+  try{
+    const jawab = await AL.tanya(text);
+    aiThinking(false);
+    /* Ditandain. Model setengah miliar parameter jauh lebih gampang ngarang
+       daripada yang di server, dan yang baca berhak tau jawabannya dari mana. */
+    aiBubble('ai', (jawab || 'Nggak kejawab.') + '\n\n— dijawab model lokal di HP ini');
+  }catch(e){
+    aiThinking(false);
+    aiBubble('ai', 'Model lokalnya gagal jalan: ' + (e.message || e));
+  }
+}
+
 async function aiSend(text){
   if (AI.busy || !text.trim()) return;
   AI.busy = true;
@@ -846,7 +862,13 @@ async function aiSend(text){
      Dulu kotak ini mati total di keadaan ini. Sekarang pengurai lokal yang
      jawab, dan obrolannya nggak dicatat ke AI.raw — ini bukan percakapan. */
   if (!AI.siap()){
-    if (!aiLokal(text)) aiBubble('ai', 'Asistennya lagi nggak nyambung ke server, jadi yang jalan cuma pencatatan cepat. Coba tulis kayak "2rb makan", "berat 67,5", atau "3 gelas".');
+    /* Pembagiannya tegas: nyatet pakai pencocokan pola, nanya pakai model.
+       Pola duluan — kalau kalimatnya emang catatan, model nggak usah dilibatin
+       sama sekali, dan nggak ada yang bisa diubah sama tebakan. */
+    if (!aiLokal(text)){
+      if (AL.nyala()) await aiTanyaLokal(text);
+      else aiBubble('ai', 'Asistennya lagi nggak nyambung ke server, jadi yang jalan cuma pencatatan cepat. Coba tulis kayak "2rb makan", "berat 67,5", atau "3 gelas".');
+    }
     AI.simpan_chat(); AI.busy = false; render();
     $('#aiLog').scrollTop = $('#aiLog').scrollHeight;
     return;
