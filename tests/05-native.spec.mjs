@@ -257,6 +257,8 @@ export async function jalan(t) {
 
   // ---------- asisten lewat CapacitorHttp ----------
   await page.click('#aiFab'); await page.waitForTimeout(500);
+  // kunci di HP sekarang ngumpet di balik akordion: jalur utamanya Supabase
+  await page.evaluate(() => { const d = document.querySelector('#aiKey').closest('details'); if (d) d.open = true; });
   await page.fill('#aiKey', 'sk-ant-tes-abcdefghij');
   await page.click('#aiConnect'); await page.waitForTimeout(700);
   await page.fill('#aiText', 'halo'); await page.click('#aiSend'); await page.waitForTimeout(900);

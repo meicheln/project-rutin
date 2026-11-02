@@ -666,14 +666,18 @@ function closeAI(){
 function paintAI(){
   const log = $('#aiLog');
   if (!AI.siap()){
-    $('#aiBar').style.display = 'none';
+    /* Barnya tetap kebuka. Tanpa server, pengurai lokal masih bisa nyatet —
+       nutup kotak ketiknya bikin satu-satunya jalur yang masih jalan ikut mati. */
+    $('#aiBar').style.display = '';
     log.innerHTML = `
       <div class="aiSetup">
         <div class="aiOrb"></div>
         <h3>Asisten belum nyala</h3>
+        <p style="color:var(--c-ok)">Pencatatan cepat tetap jalan — ketik aja
+          <b>"2rb makan"</b>, <b>"berat 67,5"</b>, atau <b>"3 gelas"</b>. Nggak butuh server.</p>
         <p>${Cloud.ready
           ? 'Kuncinya ditaruh di Edge Function proyek Supabase lo — nggak pernah nyampe HP ini.'
-          : 'Sambungkan kunci API Anthropic punya lo sendiri. Kuncinya disimpan cuma di HP ini, nggak dikirim ke mana-mana selain ke Anthropic langsung.'}</p>
+          : 'Buat asisten yang bisa mikir, kuncinya ditaruh di server — nggak pernah nyampe HP ini. Sambungkan Supabase dulu.'}</p>
         <div class="stack" style="text-align:left;margin-top:18px">
           ${Cloud.ready ? `
             <button class="btn block" id="aiConnectSrv">Nyalakan lewat server</button>
@@ -689,8 +693,15 @@ supabase secrets set ANTHROPIC_API_KEY=sk-ant-...</pre>
                   <button class="btn ghost block" id="aiConnect">Pakai kunci ini</button>
                 </div></div></details>
           ` : `
-            ${F.text('aiKey','Kunci API (sk-ant-…)', AI.cfg.key)}
-            <button class="btn block" id="aiConnect">Sambungkan</button>
+            <button class="btn block" id="aiKeCloud">Sambungkan ke Supabase</button>
+            <details class="acc"><summary>Atau pakai kunci Anthropic sendiri</summary>
+              <div class="body">Cuma kalau lo emang udah punya kunci Anthropic berbayar.
+                Setelan lo sekarang pakai Gemini lewat server, jadi ini bukan jalur yang biasa —
+                dan kuncinya bakal kesimpen apa adanya di HP ini.
+                <div class="stack" style="margin-top:12px">
+                  ${F.text('aiKey','Kunci API (sk-ant-…)', AI.cfg.key)}
+                  <button class="btn ghost block" id="aiConnect">Pakai kunci ini</button>
+                </div></div></details>
           `}
           <details class="acc"><summary>Cara dapetin kuncinya</summary>
             <div class="body">Buka <b>console.anthropic.com</b> → daftar → isi saldo (minimal $5) → menu <b>API Keys</b> → <b>Create Key</b> → salin.
@@ -721,11 +732,15 @@ supabase secrets set ANTHROPIC_API_KEY=sk-ant-...</pre>
       ()=>{ AI.mundur = false; AI.cfg.paksaLokal = false; },
       ()=>{});
 
+    // Di mode lokal, jalur yang beneran kepakai itu Supabase, bukan kunci di HP.
+    const bc = $('#aiKeCloud');
+    if (bc) bc.onclick = ()=>{ closeAI(); openGate('cfg'); };
+
     const b = $('#aiConnect');
     if (b) b.onclick = ()=>{
       const k = val('aiKey').trim();
       if (!k.startsWith('sk-ant-')){ toast('Kuncinya harus diawali sk-ant-'); return; }
-      nyalakan(b, Cloud.ready ? 'Pakai kunci ini' : 'Sambungkan',
+      nyalakan(b, 'Pakai kunci ini',
         ()=>{ AI.cfg.key = k; AI.cfg.paksaLokal = true; },
         ()=>{ AI.cfg.key = ''; AI.cfg.paksaLokal = false; AI.save(); });
     };
@@ -804,11 +819,39 @@ function aiThinking(on){
   } else if (t) t.remove();
 }
 
+/* Jalur tanpa server. Pakai pengurai yang udah lama dipakai buat balasan
+   notifikasi dari layar kunci — nol model, nol unduhan, jalan di HP mana pun.
+   Dia nggak bisa nanya atau nyimpulin, tapi dia nggak pernah ngarang: kalau
+   polanya nggak cocok dia ngaku nggak ngerti, bukan nebak. Buat nyatet —
+   yang paling sering diketik ke kotak ini — itu udah cukup.
+   Balikin true kalau kebaca, biar pemanggilnya tau nggak usah lanjut. */
+function aiLokal(text){
+  Undo.simpan('yang barusan dicatat asisten lokal');
+  const pesan = parseCepat(text, false);
+  // nggak kebaca = nggak ada yang berubah, jadi jangan ninggalin urungan kosong
+  if (!pesan){ Undo.tumpuk.pop(); return false; }
+  commit(false); Store.flush();
+  aiBubble('ai', pesan);
+  aiUrung();
+  return true;
+}
+
 async function aiSend(text){
   if (AI.busy || !text.trim()) return;
   AI.busy = true;
   $('#aiText').value = ''; $('#aiText').style.height = 'auto';
   aiBubble('me', text);
+
+  /* Belum ada jalur ke model sama sekali (server mati, kunci nggak ada).
+     Dulu kotak ini mati total di keadaan ini. Sekarang pengurai lokal yang
+     jawab, dan obrolannya nggak dicatat ke AI.raw — ini bukan percakapan. */
+  if (!AI.siap()){
+    if (!aiLokal(text)) aiBubble('ai', 'Asistennya lagi nggak nyambung ke server, jadi yang jalan cuma pencatatan cepat. Coba tulis kayak "2rb makan", "berat 67,5", atau "3 gelas".');
+    AI.simpan_chat(); AI.busy = false; render();
+    $('#aiLog').scrollTop = $('#aiLog').scrollHeight;
+    return;
+  }
+
   AI.raw.push({ role:'user', content:text });
   aiThinking(true);
 
@@ -865,6 +908,9 @@ async function aiSend(text){
         ? 'Servernya nggak kegapai. Kalau internet lo jalan, kemungkinan besar proyek Supabase-nya ketiduran — proyek gratis di-pause otomatis kalau seminggu nggak dipakai. Buka dashboard Supabase, pilih proyeknya, pencet Restore project. Catatan lo di HP aman, nggak ada yang keapus.'
       : null;
     aiBubble('ai', ramah || ('Gagal: ' + m));
+    /* Gagal ke server bukan alasan buat ngebuang yang barusan diketik. Kalau
+       pengurai lokal ngerti, catatannya tetap masuk — apa pun sebab gagalnya. */
+    aiLokal(text);
   }finally{
     aiThinking(false);
     AI.simpan_chat();

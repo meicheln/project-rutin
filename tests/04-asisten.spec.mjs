@@ -94,6 +94,8 @@ export async function jalan(t) {
   });
 
   await page.click('#aiFab'); await page.waitForTimeout(500);
+  // kunci di HP sekarang ngumpet di balik akordion: jalur utamanya Supabase
+  await page.evaluate(() => { const d = document.querySelector('#aiKey').closest('details'); if (d) d.open = true; });
   await page.fill('#aiKey', 'sk-ant-tes-1234567890');
   await page.click('#aiConnect'); await page.waitForTimeout(600);
   t.eq(await page.evaluate(() => AI.cfg.model), 'model-sonnet-x', 'model sonnet dipilih otomatis dari daftar');
@@ -216,6 +218,62 @@ export async function jalan(t) {
   t.eq(vonis.kecil, 'sempit', 'buffer kekecilan divonis mepet');
   t.eq(vonis.bisa, 'bisa', 'WebGPU plus RAM cukup divonis sanggup');
   t.eq(vonis.diam, 'bisa', 'HP yang nggak ngelaporin RAM nggak dihukum duluan');
+
+  // ---------- jalur lokal pas server mati ----------
+  // Dulu kotak asisten mati total kalau nggak ada jalur ke model: barnya disembunyiin
+  // dan nggak ada yang bisa diketik. Padahal pengurai balasan notifikasi jalan tanpa
+  // server sama sekali, dan nyatet itu yang paling sering diketik ke kotak ini.
+  await page.evaluate(() => {
+    Cloud.ready = false; AI.mundur = false; AI.cfg = { key:'', model:'' }; AI.save();
+    AI.raw = []; paintAI();
+  });
+  await page.waitForTimeout(400);
+  t.ok(!await page.evaluate(() => AI.siap()), 'tanpa kunci & tanpa server, asisten kehitung belum nyala');
+  t.ok(await page.evaluate(() => getComputedStyle(document.querySelector('#aiBar')).display !== 'none'),
+    'kotak ketiknya tetap kebuka walau asistennya belum nyala');
+
+  const sblm = await page.evaluate(() => ({ tx: S.txns.length, raw: AI.raw.length }));
+  await page.fill('#aiText', '2rb makan'); await page.click('#aiSend'); await page.waitForTimeout(700);
+  const lokal = await page.evaluate(() => {
+    const t = S.txns[S.txns.length - 1];
+    return { tx: S.txns.length, raw: AI.raw.length, amt: t.amt, cat: t.cat, tipe: t.type,
+      balasan: [...document.querySelectorAll('#aiLog .msg.ai')].pop().textContent,
+      bisaUrung: Undo.ada() };
+  });
+  t.eq(lokal.tx, sblm.tx + 1, 'pengurai lokal nyatet transaksi tanpa server sama sekali');
+  t.eq(lokal.amt, 2000, '"2rb" dibaca 2000');
+  t.eq(lokal.cat, 'makan', 'kategorinya ketebak dari kata "makan"');
+  t.eq(lokal.tipe, 'out', 'kecatat sebagai pengeluaran');
+  t.ok(/2\.000/.test(lokal.balasan), 'balasannya nyebut jumlahnya: ' + lokal.balasan);
+  t.ok(lokal.bisaUrung, 'hasil pengurai lokal bisa diurungkan');
+  t.eq(lokal.raw, sblm.raw, 'jalur lokal nggak dicatat ke riwayat obrolan model — ini bukan percakapan');
+
+  // yang nggak kebaca jangan diem-diem nulis ke catatan harian: orangnya lagi lihat
+  // layar dan bisa ngetik ulang. Beda sama balasan dari layar kunci.
+  const sblm2 = await page.evaluate(() => ({ tx: S.txns.length, catatan: (dayRO(today()).catatan || '').length }));
+  await page.fill('#aiText', 'halo apa kabar'); await page.click('#aiSend'); await page.waitForTimeout(700);
+  const gagal = await page.evaluate(() => ({
+    tx: S.txns.length, catatan: (dayRO(today()).catatan || '').length,
+    balasan: [...document.querySelectorAll('#aiLog .msg.ai')].pop().textContent,
+  }));
+  t.eq(gagal.tx, sblm2.tx, 'kalimat yang nggak kebaca nggak bikin transaksi karangan');
+  t.eq(gagal.catatan, sblm2.catatan, 'kalimat yang nggak kebaca nggak diam-diam ditulis ke catatan harian');
+  t.ok(/pencatatan cepat|2rb makan/i.test(gagal.balasan),
+    'yang nggak kebaca dibales contoh yang bener, bukan diem: ' + gagal.balasan);
+
+  // dan pas server ADA tapi gagal, yang diketik tetap kecatat
+  await page.evaluate(() => {
+    Cloud.ready = true; AI.cfg = { key:'', model:'model-x' }; AI.save();
+    window.aiReq = async () => { throw new Error('Failed to fetch'); };
+    AI.raw = []; paintAI();
+  });
+  const sblm3 = await page.evaluate(() => S.txns.length);
+  await page.fill('#aiText', 'jajan 15rb'); await page.click('#aiSend'); await page.waitForTimeout(900);
+  const jatuh = await page.evaluate(() => ({ tx: S.txns.length, amt: S.txns[S.txns.length-1].amt,
+    log: document.querySelector('#aiLog').textContent }));
+  t.eq(jatuh.tx, sblm3 + 1, 'server gagal, catatannya tetap masuk lewat pengurai lokal');
+  t.eq(jatuh.amt, 15000, 'jumlahnya bener walau servernya mati');
+  t.ok(/nggak kegapai/.test(jatuh.log), 'sebab gagalnya tetap dikasih tau, bukan ditutupin');
 
   t.ok(app.galat.length === 0, 'nggak ada galat di console: ' + app.galat.join(' | '));
   await app.tutup();

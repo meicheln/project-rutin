@@ -130,7 +130,7 @@ const tebakKatOut = t => (Object.entries(SINONIM).find(([,kata]) => kata.some(k 
    layar kunci, dan jalan tanpa sinyal sama sekali. Yang nggak kekenal disimpan jadi
    catatan harian — nggak ada balasan yang hilang diam-diam.
    Ngubah S langsung; pemanggilnya yang commit(). */
-function parseCepat(teks){
+function parseCepat(teks, catatanCadangan = true){
   const t = String(teks).toLowerCase().trim();
   const d = today();
   const angka = x => parseFloat(String(x).replace(',','.'));
@@ -166,6 +166,10 @@ function parseCepat(teks){
     return `${masuk?'+':'−'}${rp(n)} ${catOf(cat).n} dicatat.`;
   }
 
+  /* Yang manggil dari kotak asisten minta null, bukan catatan cadangan: orangnya
+     lagi lihat layar dan bisa ngetik ulang. Dari layar kunci beda — di sana input
+     yang dibuang itu input yang hilang selamanya. */
+  if (!catatanCadangan) return null;
   const o = day(d);
   o.catatan = (o.catatan ? o.catatan + '\n' : '') + '· ' + teks;
   return 'Nggak kebaca otomatis — disimpan ke catatan hari ini.';
