@@ -279,6 +279,41 @@ export async function jalan(t) {
   t.ok(!mati.nyala && mati.pipe === null, 'dimatiin beneran mati, bukan cuma disembunyiin');
   t.ok(/pencatatan cepat/i.test(mati.balasan), 'tanpa model, balikin ke petunjuk pencatatan');
 
+  // pilihan model: ganti model harus matiin yang lagi kepasang, bukan diem-diem
+  // jalanin bobot lama di bawah nama baru
+  const pilih = await page.evaluate(() => {
+    const h = { bawaan: AL.pilihan().id };
+    LS.set('rutin.alNyala', 1); AL.pipe = 'pura-pura';
+    AL.pilih('qwen');
+    h.sesudah = AL.pilihan().id; h.ikutMati = !AL.nyala() && AL.pipe === null;
+    AL.pilih('ngawur-nggak-ada');
+    h.ngawurDitolak = AL.pilihan().id === h.sesudah;
+    AL.pilih('gemma');
+    return h;
+  });
+  t.ok(/gemma/i.test(pilih.bawaan), 'bawaannya model yang lebih ngerti Indonesia');
+  t.ok(/Qwen/i.test(pilih.sesudah), 'bisa ganti ke model yang lebih kecil');
+  t.ok(pilih.ikutMati, 'ganti model matiin yang lagi kepasang — bobot lama nggak kepakai diam-diam');
+  t.ok(pilih.ngawurDitolak, 'nama model yang nggak ada diabaikan, bukan bikin pilihan kosong');
+
+  // bobot setengah-presisi ditanya ke GPU-nya, bukan ditebak. Salah tebak di sini
+  // bukan "agak pelan" tapi gagal muat sesudah ngunduh ratusan MB.
+  const dt = await page.evaluate(async () => {
+    const asli = navigator.gpu;
+    const palsu = fitur => ({ requestAdapter: async () => ({ features: new Set(fitur) }) });
+    Object.defineProperty(navigator, 'gpu', { value: palsu(['shader-f16']), configurable: true });
+    const ada = await AL.dtype();
+    Object.defineProperty(navigator, 'gpu', { value: palsu([]), configurable: true });
+    const nggak = await AL.dtype();
+    Object.defineProperty(navigator, 'gpu', { value: undefined, configurable: true });
+    const kosong = await AL.dtype();
+    Object.defineProperty(navigator, 'gpu', { value: asli, configurable: true });
+    return { ada, nggak, kosong };
+  });
+  t.eq(dt.ada, 'q4f16', 'GPU yang dukung shader-f16 dapet bobot yang lebih kecil');
+  t.eq(dt.nggak, 'q4', 'GPU tanpa shader-f16 turun ke bobot yang nggak butuh f16');
+  t.eq(dt.kosong, 'q4', 'tanpa WebGPU sama sekali, jangan milih bobot yang pasti gagal');
+
   const vonis = await page.evaluate(() => ({
     mati:   AL.vonis({ gpu:false, catatan:'navigator.gpu nggak ada sama sekali' })[0],
     sempit: AL.vonis({ gpu:true, buf:4096, ram:2 })[0],
