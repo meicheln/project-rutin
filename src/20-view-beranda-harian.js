@@ -139,6 +139,14 @@ function renderHome(){
       <span style="font-weight:800;margin-right:5px;opacity:.6">${g}</span>${l}</button>`).join('')}
   </div>
 
+  ${S.settings.ingatkan || LT().ingatLatihan || !LS.get('rutin.ajakNotif', 1) ? '' :
+    `<div class="card tight" style="margin-top:12px;border-color:${cssv('--c-warn')}">
+    <div class="row"><span class="dot" style="background:var(--c-warn)"></span>
+    <div class="grow sm"><b>Aplikasi ini nggak pernah nyapa lo duluan</b>
+      <div class="xs dim">Semua pengingat mati, jadi lo harus inget sendiri buat buka.</div></div>
+    <button class="chip" data-notif="on">Nyalain</button>
+    <button class="link xs" data-notif="nanti" style="margin-left:9px">Nanti</button></div></div>`}
+
   ${od+dt>0 ? `<div class="card tight" style="margin-top:12px;border-color:${od?cssv('--c-bad-soft'):cssv('--border')}">
     <div class="row"><span class="dot" style="background:var(${od?'--c-bad':'--c-warn'})"></span>
     <div class="grow sm"><b>${od?od+' tugas telat':''}${od&&dt?' · ':''}${dt?dt+' jatuh tempo hari ini':''}</b></div>

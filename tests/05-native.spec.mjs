@@ -373,6 +373,42 @@ export async function jalan(t) {
   const idb = await page.evaluate(async () => { const r = await IDB.get('state'); return r ? r.txns.length : 0; });
   t.ok(idb > 0, 'data ditulis ke IndexedDB waktu aplikasi pindah ke latar');
 
+  // ---------- ajakan nyalain pengingat ----------
+  // Jawaban dari pengamatan 14 hari: saklarnya ada dua, kepencar di dua lembar beda,
+  // dan nggak pernah ketemu. Kartunya cuma muncul kalau dua-duanya mati.
+  await page.evaluate(() => {
+    S.settings.ingatkan = false; LT().ingatLatihan = false;
+    window.__nat.notif.length = 0; render();
+  });
+  await page.waitForTimeout(400);
+  t.ok(await page.evaluate(() => !!document.querySelector('[data-notif="on"]')),
+    'kartu ajakan muncul pas semua pengingat mati');
+
+  await page.click('[data-notif="on"]'); await page.waitForTimeout(900);
+  const ajak = await page.evaluate(() => ({
+    harian: S.settings.ingatkan, latihan: LT().ingatLatihan,
+    tiapHari: window.__nat.notif.filter(n => n.id < 200).length,
+    lat: window.__nat.notif.filter(n => n.id >= 210 && n.id < 300).length,
+    kartu: !!document.querySelector('[data-notif="on"]'),
+  }));
+  t.ok(ajak.harian && ajak.latihan, 'satu pencetan nyalain dua-duanya');
+  t.eq(ajak.tiapHari, 2, 'pengingat pagi & malam langsung kejadwal');
+  t.ok(ajak.lat > 0, 'pengingat hari latihan langsung kejadwal');
+  t.ok(!ajak.kartu, 'kartunya ilang begitu pengingatnya nyala');
+
+  // Saklar latihan harus ngejadwalin sendiri, tanpa nunggu tombol Simpan. Ini bug
+  // yang bikin saklarnya kelihatan nyala tapi diem selama 14 hari pengamatan.
+  await page.click('nav .tab[data-go="prog"]'); await page.waitForTimeout(500);
+  await page.click('[data-sheet="jadwalLatihan"]'); await page.waitForTimeout(600);
+  await page.evaluate(() => { window.__nat.notif.length = 0; });
+  await page.click('#jlNotif'); await page.waitForTimeout(700);        // dimatiin
+  const sMati = await page.evaluate(() => window.__nat.notif.filter(n => n.id >= 210 && n.id < 300).length);
+  await page.click('#jlNotif'); await page.waitForTimeout(700);        // dinyalain lagi
+  const sNyala = await page.evaluate(() => window.__nat.notif.filter(n => n.id >= 210 && n.id < 300).length);
+  t.eq(sMati, 0, 'saklar dimatiin langsung ngebatalin pengingat latihan, tanpa pencet Simpan');
+  t.ok(sNyala > 0, 'saklar dinyalain langsung ngejadwalin lagi, tanpa pencet Simpan');
+  await page.evaluate(() => closeSheet()); await page.waitForTimeout(300);
+
   t.ok(app.galat.length === 0, 'nggak ada galat di console: ' + app.galat.join(' | '));
   await app.tutup();
 }

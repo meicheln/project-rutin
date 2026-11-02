@@ -45,15 +45,12 @@ kode.**
   keputusan keamanan yang sengaja diambil. Kalau mau dibenerin, pilihannya
   proksi kedua di tempat lain, dan itu bukan pekerjaan kecil.
 
-## Ketemu selama pembekuan (nggak dibenerin, nggak kritis)
+## Ketemu selama pembekuan
 
-- **Saklar "Ingetin di hari latihan" nggak langsung ngejadwalin.** `jlNotif`
-  cuma manggil `commit(false)`; `Notif.apply()` baru kepanggil dari
-  `jlSimpan` atau pas boot berikutnya. Saklar saudaranya di Pengaturan
-  (`stNotif`) manggil dua-duanya. Akibatnya: nyalain saklar tanpa mencet
-  Simpan = saklarnya nyala tapi notifikasinya nggak pernah jalan.
-  Beda perilaku antara dua saklar yang kelihatan sama itu jebakan.
-  Sementara: pencet Simpan. (23 Okt)
+- ~~**Saklar "Ingetin di hari latihan" nggak langsung ngejadwalin.**~~
+  Dibenerin 2 November, sesudah pembekuan kelar. `jlNotif` sekarang manggil
+  `Notif.apply()` dan ngasih toast, persis kayak saklar saudaranya di
+  Pengaturan. (ketemu 23 Okt)
 
 ## Utang yang belum dibayar
 

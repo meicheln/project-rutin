@@ -651,9 +651,22 @@ const SHEETS = {
 
 /* ---------- delegasi event ---------- */
 document.addEventListener('click', ev => {
-  const t = ev.target.closest('[data-go],[data-sheet],[data-rt],[data-mood],[data-energi],[data-air],[data-tx],[data-task],[data-taskedit],[data-bab],[data-bimb],[data-idea],[data-lat],[data-wlog],[data-block],[data-agenda],[data-target],[data-csv],[data-mfilter],[data-kfilter],[data-ifilter],[data-chip],[data-edit]');
+  const t = ev.target.closest('[data-go],[data-sheet],[data-rt],[data-mood],[data-energi],[data-air],[data-tx],[data-task],[data-taskedit],[data-bab],[data-bimb],[data-idea],[data-lat],[data-wlog],[data-block],[data-agenda],[data-target],[data-csv],[data-mfilter],[data-kfilter],[data-ifilter],[data-chip],[data-edit],[data-notif]');
   if (!t) return;
   const d = t.dataset;
+
+  if (d.notif){
+    if (d.notif === 'nanti'){ LS.set('rutin.ajakNotif', 0); render(); return; }
+    // Dinyalain dua-duanya sekaligus: saklarnya kepencar di dua lembar beda, dan
+    // itu sebabnya nggak pernah ketemu selama dua minggu pengamatan.
+    (async ()=>{
+      if (!await Notif.izin()) return toast('Izin notifikasi ditolak. Nyalain dulu dari setelan Android.');
+      S.settings.ingatkan = true; LT().ingatLatihan = true;
+      commit(); await Notif.apply();
+      toast('Pengingat nyala: pagi, malam, dan hari latihan.');
+    })();
+    return;
+  }
 
   if (d.chip){ $$(`[data-chip="${d.chip}"]`).forEach(c=>c.classList.remove('on')); t.classList.add('on');
     $('#'+d.chip).value = d.val; buzz(5); return; }

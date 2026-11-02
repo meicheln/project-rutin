@@ -961,7 +961,12 @@ function sheetJadwalLatihan(){
     L.ingatLatihan = !L.ingatLatihan;
     $('#jlNotif').classList.toggle('on', L.ingatLatihan);
     $('#jlNotif').textContent = L.ingatLatihan ? 'Nyala' : 'Mati';
-    commit(false);
+    /* apply() harus kepanggil di sini, bukan cuma di Simpan. Tanpa ini saklarnya
+       kelihatan nyala tapi nggak ada notifikasi yang pernah kejadwal — dan saklar
+       saudaranya di Pengaturan kelakuannya beda, padahal kelihatan sama. */
+    L.jamIngat = val('jlJam') || L.jamIngat || '06:30';
+    commit(false); await Notif.apply();
+    toast(L.ingatLatihan ? 'Pengingat latihan nyala' : 'Pengingat latihan mati');
   };
   $('#jlReset').onclick = ()=>{ L.jadwal = JSON.parse(JSON.stringify(JADWAL_BAKU)); commit(); closeSheet(); toast('Jadwal dikembalikan ke bawaan'); };
   $('#jlSimpan').onclick = ()=>{ L.jamIngat = val('jlJam') || '06:30'; commit(); Notif.apply(); closeSheet(); toast('Jadwal disimpan'); };
