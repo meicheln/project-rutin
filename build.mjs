@@ -48,6 +48,16 @@ writeFileSync(OUT, html);
 // ---- pemeriksaan ----
 const galat = [];
 
+// 0. tiap potongan .js harus bawa tag <script>-nya sendiri. Tanpa ini isinya
+//    nempel ke HTML jadi teks biasa: nggak pernah jalan, dan pemeriksaan sintaks
+//    di bawah nggak kena karena dia cuma ngecek yang di dalam <script>.
+for (const r of laporan) {
+  if (!/\.js$/.test(r.file)) continue;
+  const isi = readFileSync(join(SRC, r.file), 'utf8');
+  if (!isi.trimStart().startsWith('<script>'))
+    galat.push(`${r.file}: nggak dibuka pakai <script> — isinya bakal jadi teks mati di halaman`);
+}
+
 // 1. tiap blok <script> harus valid sintaksnya
 const blok = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)];
 if (CHECK) {

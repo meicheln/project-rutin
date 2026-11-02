@@ -381,6 +381,11 @@ function sheetSettings(){
           <div class="xs dim">${AI.siap()?esc(AI.cfg.model):'Catat & tanya pakai bahasa biasa'}</div></div>
         <button class="chip ${AI.siap()?'':'on'}" id="stAI" style="flex:none">${AI.siap()?'Atur':'Nyalakan'}</button>
       </div>
+      <div class="row between" style="margin-top:11px">
+        <div class="grow"><div class="sm" style="font-weight:650">Asisten lokal <span class="badge">uji coba</span></div>
+          <div class="xs dim">Model yang jalan di HP ini, tanpa server</div></div>
+        <button class="chip" data-sheet="asistenLokal" style="flex:none">Periksa</button>
+      </div>
     </div>
 
     <div class="hr"></div>

@@ -171,6 +171,52 @@ export async function jalan(t) {
   t.ok(/galat_aneh_yang_belum_pernah_ada/.test(pesanAneh),
     'galat yang nggak kekenal ditampilin apa adanya, bukan ditebak jadi pesan lain');
 
+  // ---------- kandang asisten lokal ----------
+  // Model yang muat di HP itu kecil dan gampang salah milih alat. 21 dari 25 alat
+  // nulis ke data penggunanya, jadi salah pilih = catatan kena. Kandangnya diuji
+  // di sini, bukan dipercaya dari instruksi sistem.
+  const kandang = await page.evaluate(() => ({
+    boleh: AL.alat().map(t => t.name),
+    diblokir: AL.diblokir().length,
+    total: AI_TOOLS.length,
+    tumpang: AL.alat().filter(a => AL.diblokir().some(b => b.name === a.name)).length,
+    tulisDitolak: AL.boleh('catat_transaksi'),
+    bacaDiterima: AL.boleh('baca_data'),
+    ngarang: AL.boleh('hapus_semua_data'),
+  }));
+  t.ok(kandang.boleh.length > 0, 'model lokal tetap dapat alat baca');
+  t.ok(kandang.boleh.every(n => /^baca_/.test(n)),
+    'nol alat yang nulis bocor ke model lokal: ' + kandang.boleh.join(', '));
+  t.eq(kandang.boleh.length + kandang.diblokir, kandang.total, 'tiap alat kebagi, nggak ada yang kelewat');
+  t.eq(kandang.tumpang, 0, 'nggak ada alat yang kehitung dua-duanya');
+  t.ok(!kandang.tulisDitolak, 'alat yang nulis ditolak di lapis kedua');
+  t.ok(kandang.bacaDiterima, 'alat baca lolos lapis kedua');
+  t.ok(!kandang.ngarang, 'nama alat karangan ditolak, bukan dianggap boleh');
+
+  // daftarnya disaring dari AI_TOOLS, bukan diketik ulang — alat baru nggak boleh
+  // diam-diam keikut cuma karena seseorang lupa ngurus daftarnya
+  const alatBaru = await page.evaluate(() => {
+    AI_TOOLS.push({ name:'hapus_segalanya', description:'alat palsu buat tes', input_schema:{type:'object'} });
+    const h = { boleh: AL.boleh('hapus_segalanya'), masukDaftar: AL.alat().some(t => t.name === 'hapus_segalanya') };
+    AI_TOOLS.pop();
+    return h;
+  });
+  t.ok(!alatBaru.boleh && !alatBaru.masukDaftar,
+    'alat baru yang nulis otomatis keblokir tanpa ada yang perlu ngapa-ngapain');
+
+  const vonis = await page.evaluate(() => ({
+    mati:   AL.vonis({ gpu:false, catatan:'navigator.gpu nggak ada sama sekali' })[0],
+    sempit: AL.vonis({ gpu:true, buf:4096, ram:2 })[0],
+    kecil:  AL.vonis({ gpu:true, buf:256, ram:8 })[0],
+    bisa:   AL.vonis({ gpu:true, buf:4096, ram:8 })[0],
+    diam:   AL.vonis({ gpu:true, buf:0, ram:0 })[0],
+  }));
+  t.eq(vonis.mati, 'nggak', 'tanpa WebGPU divonis nggak sanggup');
+  t.eq(vonis.sempit, 'sempit', 'RAM kurang divonis mepet');
+  t.eq(vonis.kecil, 'sempit', 'buffer kekecilan divonis mepet');
+  t.eq(vonis.bisa, 'bisa', 'WebGPU plus RAM cukup divonis sanggup');
+  t.eq(vonis.diam, 'bisa', 'HP yang nggak ngelaporin RAM nggak dihukum duluan');
+
   t.ok(app.galat.length === 0, 'nggak ada galat di console: ' + app.galat.join(' | '));
   await app.tutup();
 }
