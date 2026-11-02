@@ -279,6 +279,30 @@ export async function jalan(t) {
   t.ok(!mati.nyala && mati.pipe === null, 'dimatiin beneran mati, bukan cuma disembunyiin');
   t.ok(/pencatatan cepat/i.test(mati.balasan), 'tanpa model, balikin ke petunjuk pencatatan');
 
+  // Prompt API bawaan Chrome (Gemini Nano): kalau ada, dia ngalahin semua pilihan.
+  // Dicek ke perangkatnya, dan nggak boleh meledak kalau API-nya nggak ada.
+  // Chrome di mesin tes mungkin PUNYA API-nya, jadi keadaan "nggak ada" dipasang
+  // sendiri, bukan diasumsiin. Dua-duanya harus kebaca bener.
+  const bawaan = await page.evaluate(async () => {
+    const simpanLM = self.LanguageModel, simpanAi = self.ai;
+    const pasang = v => Object.defineProperty(self, 'LanguageModel', { value:v, configurable:true, writable:true });
+    Object.defineProperty(self, 'ai', { value: undefined, configurable: true, writable: true });
+
+    pasang(undefined);
+    const h = { kosong: await AL.bawaan() };
+    pasang({ availability: async () => 'available' });
+    h.ada = await AL.bawaan();
+    pasang({ availability: async () => { throw new Error('ditolak'); } });
+    h.meledak = await AL.bawaan();
+
+    pasang(simpanLM);
+    Object.defineProperty(self, 'ai', { value: simpanAi, configurable: true, writable: true });
+    return h;
+  });
+  t.eq(bawaan.kosong, 'nggak ada', 'tanpa Prompt API dilaporin nggak ada, bukan error');
+  t.eq(bawaan.ada, 'available', 'kalau Prompt API ada, statusnya dibaca apa adanya');
+  t.ok(/^gagal:/.test(bawaan.meledak), 'Prompt API yang error nggak bikin layar pemeriksaan mati');
+
   // pilihan model: ganti model harus matiin yang lagi kepasang, bukan diem-diem
   // jalanin bobot lama di bawah nama baru
   const pilih = await page.evaluate(() => {

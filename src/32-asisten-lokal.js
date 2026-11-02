@@ -97,6 +97,18 @@ const AL = {
     return String(isi || '').trim();
   },
 
+  /* Prompt API bawaan Chrome (Gemini Nano). Kalau ini ada, dia ngalahin semua
+     pilihan di atas: nol unduhan dari kita, modelnya punya sistem, dan jauh
+     lebih pinter dari apa pun yang muat di 728 MB.
+     Dokumen Google bilang Android belum didukung — tapi yang nentuin HP-nya,
+     bukan dokumennya, dan dokumen yang sama udah salah soal WebGPU di WebView. */
+  async bawaan(){
+    const LM = self.LanguageModel || (self.ai && self.ai.languageModel);
+    if (!LM || !LM.availability) return 'nggak ada';
+    try{ return String(await LM.availability() || 'nggak jelas'); }
+    catch(e){ return 'gagal: ' + (e.message || e); }
+  },
+
   /* Apa HP ini sanggup. Ditanya ke perangkatnya langsung, bukan ditebak dari
      merek atau versi Android — dukungan WebGPU di WebView beda-beda per HP. */
   async periksa(){
@@ -143,8 +155,17 @@ function sheetAsistenLokal(){
      <div class="card tight" id="alHasil" style="background:var(--surface-2);margin-top:10px">
        <div class="sm dim">Lagi meriksa HP ini…</div>
      </div>
+     <div class="note" id="alBawaan" style="margin-top:9px"></div>
      <div id="alPasang" style="margin-top:10px"></div>`,
     ()=>{}, null, 'Tutup');
+
+  AL.bawaan().then(b => {
+    const el = $('#alBawaan'); if (!el) return;
+    const ada = !/^nggak ada/.test(b);
+    el.innerHTML = `<div class="xs dim">Gemini Nano bawaan Chrome: <b>${esc(b)}</b>${
+      ada ? ' — kasih tau gua, ini ngalahin semua pilihan di bawah'
+          : ' (Google bilang Android emang belum kebagian)'}</div>`;
+  });
 
   AL.periksa().then(h => {
     const [v, alasan] = AL.vonis(h);
