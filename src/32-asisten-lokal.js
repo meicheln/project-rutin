@@ -23,22 +23,19 @@
    lebih baru, ukuran mirip — tapi dia naruh templatnya di chat_template.jinja
    terpisah dan transformers.js 4.3.1 nggak baca berkas itu, jadi dia error
    sebelum ngejawab apa pun. Llama 3.2 jalan tapi Indonesia nggak termasuk
-   bahasa yang didukungnya. */
-const AL_MODEL = {
-  gemma: { id:'onnx-community/gemma-3-1b-it-ONNX', nama:'Gemma 3 1B',
-           mb:{ q4f16:728, q4:819 }, ket:'Lebih ngerti bahasa Indonesia. Lebih pelan, lebih gede.' },
-  qwen:  { id:'onnx-community/Qwen2.5-0.5B-Instruct', nama:'Qwen2.5 0,5B',
-           mb:{ q4f16:461, q4:750 }, ket:'Separuh ukurannya dan lebih gesit, tapi lebih sering ngaco.' },
-};
+   bahasa yang didukungnya.
+
+   Qwen2.5-0.5B sempat jadi pilihan kedua, terus diuji beneran di GPU: 130 detik
+   buat satu jawaban, dan jawabannya "2777777777..." sampai batas token. Dibuang,
+   bukan disimpen sebagai pilihan — pilihan yang nggak kepake itu bukan
+   keleluasaan, cuma jebakan buat yang nyoba. */
+const AL_MODEL = { id:'onnx-community/gemma-3-1b-it-ONNX', nama:'Gemma 3 1B', mb:{ q4f16:728, q4:819 } };
 
 const AL = {
   PUSTAKA: 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@4.3.1',
 
   pipe: null,
   muatan: null,                                    // janji yang lagi jalan, biar nggak dobel
-
-  pilihan(){ return AL_MODEL[LS.get('rutin.alModel', 'gemma')] || AL_MODEL.gemma; },
-  pilih(k){ if (!AL_MODEL[k]) return; LS.set('rutin.alModel', k); this.matikan(); },
 
   /* Ditanya ke GPU-nya, bukan ditebak. Tanpa shader-f16 bobot setengah-presisi
      nggak jalan, dan hasilnya bukan "agak pelan" tapi gagal muat — jadi turun
@@ -190,7 +187,7 @@ function sheetAsistenLokal(){
    ulang sendiri tanpa ngulang pemeriksaan WebGPU-nya. */
 function alPasang(dtype){
   const el = $('#alPasang'); if (!el) return;
-  const m = AL.pilihan(), mb = m.mb[dtype] || m.mb.q4f16;
+  const m = AL_MODEL, mb = m.mb[dtype] || m.mb.q4f16;
   if (AL.nyala()){
     el.innerHTML = `<div class="card tight" style="background:var(--surface-2)">
       <div class="row"><span class="dot" style="background:var(--c-ok)"></span>
@@ -202,20 +199,15 @@ function alPasang(dtype){
     return;
   }
   el.innerHTML =
-    `<div class="lbl">Pilih modelnya</div>
-     ${Object.entries(AL_MODEL).map(([k, v]) => `
-       <button class="card tight press" data-almodel="${k}" style="width:100%;text-align:left;margin-bottom:8px;
-         background:var(--surface-2);border-color:${k === LS.get('rutin.alModel','gemma') ? cssv('--inv') : cssv('--border')}">
-         <div class="row"><div class="grow sm" style="font-weight:650">${esc(v.nama)}</div>
-           <span class="xs dim tnum">${v.mb[dtype] || v.mb.q4f16} MB</span></div>
-         <div class="xs dim" style="margin-top:3px">${esc(v.ket)}</div></button>`).join('')}
-     <button class="btn block" id="alUnduh" style="margin-top:4px">Unduh ${esc(m.nama)} (${mb} MB)</button>
+    `<button class="btn block" id="alUnduh">Unduh ${esc(m.nama)} (${mb} MB)</button>
      <div class="note" style="margin-top:9px">Sekali unduh, habis itu kesimpen dan jalan tanpa internet.
-       Pakai wifi — ini gede. Modelnya cuma bisa <b>baca</b> data lo, nggak bisa ngubah apa pun.</div>
+       Pakai wifi — ini gede.</div>
+     <div class="note" style="margin-top:9px;color:var(--c-warn)">Diukur beneran di GPU:
+       muat sekitar 5 menit, tiap jawaban 6–12 detik. Dari 5 pertanyaan di data asli,
+       <b>3 bener dan 1 angkanya dikarang</b> — pertanyaan uang, berat, runtutan dan sejenisnya
+       udah dijawab kode (selalu tepat), jadi model ini cuma kebagian sisanya.
+       Anggap jawabannya tebakan, bukan laporan.</div>
      <div class="note" id="alProg" style="margin-top:9px;display:none"></div>`;
-
-  el.querySelectorAll('[data-almodel]').forEach(b =>
-    b.onclick = ()=>{ AL.pilih(b.dataset.almodel); alPasang(dtype); buzz(6); });
 
   $('#alUnduh').onclick = async ()=>{
     const b = $('#alUnduh'), pr = $('#alProg');

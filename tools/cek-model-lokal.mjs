@@ -19,15 +19,15 @@ import { fileURLToPath } from 'node:url';
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const src = readFileSync(join(ROOT, 'src', '32-asisten-lokal.js'), 'utf8');
 
-const blok = src.match(/const AL_MODEL = \{[\s\S]*?\n\};/);
+const blok = src.match(/^const AL_MODEL = .*;$/m);
 if (!blok) { console.error('AL_MODEL nggak ketemu di src/32-asisten-lokal.js'); process.exit(1); }
-const MODEL = new Function(blok[0] + '\nreturn AL_MODEL;')();
+const MODEL = [new Function(blok[0] + '\nreturn AL_MODEL;')()];
 
 const mb = b => (b / 1048576).toFixed(0);
 let galat = 0;
 
-for (const [kunci, m] of Object.entries(MODEL)) {
-  console.log(`\n${kunci} — ${m.nama}\n  ${m.id}`);
+for (const m of MODEL) {
+  console.log(`\n${m.nama}\n  ${m.id}`);
   try {
     const tc = await fetch(`https://huggingface.co/${m.id}/raw/main/tokenizer_config.json`).then(r => r.json());
     if (typeof tc.chat_template === 'string' && tc.chat_template.length) {

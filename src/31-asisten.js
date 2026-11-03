@@ -836,6 +836,48 @@ function aiLokal(text){
   return true;
 }
 
+/* Jawaban angka diitung kode, bukan dikeluarin model.
+   Ini hasil pengukuran, bukan kehati-hatian: Gemma 3 1B diuji lima pertanyaan
+   di data beneran — uang sama berat kejawab bener, tapi runtutan DIKARANG tiap
+   kali. Dipaksa nilainya 0 dia jawab 6; dipaksa 5 dia jawab 10. Angka karangan
+   yang kelihatan masuk akal itu kegagalan paling parah di aplikasi pencatat,
+   karena penggunanya nggak punya cara buat tau itu salah.
+   Jadi pertanyaan yang aplikasinya emang bisa hitung sendiri, dijawab sendiri.
+   Modelnya cuma kebagian sisanya, dan jawabannya ditandain. */
+function jawabCepat(teks){
+  const t = String(teks).toLowerCase();
+  if (!/\?|berapa|gimana|apa |brp/.test(t)) return null;      // bukan pertanyaan, jangan dicegat
+  const m = today().slice(0, 7), tx = txOfMonth(m);
+
+  if (/berat/.test(t)){
+    const w = lastWeight();
+    return w ? `Berat terakhir ${String(w.kg).replace('.', ',')} kg, dicatat ${w.d}.` : 'Belum ada catatan berat.';
+  }
+  if (/runtutan|streak/.test(t)){
+    const s = streak();
+    return s ? `Runtutan lo ${s} hari.` : 'Runtutan lo lagi 0 — belum ada hari yang rutinitasnya kelar semua.';
+  }
+  if (/rutinitas|ceklis/.test(t))
+    return `Hari ini ${routineDone(today())} dari ${S.routines.length} rutinitas kelar.`;
+  if (/sisa|budget|anggaran/.test(t)){
+    const b = +S.settings.budget || 0, k = outSum(tx);
+    return b ? `Budget ${rp(b)}, kepake ${rp(k)}, sisa ${rp(b - k)}.` : `Budget belum diisi. Bulan ini keluar ${rp(k)}.`;
+  }
+  if (/masuk|pemasukan|gaji|dapet/.test(t)) return `Bulan ini masuk ${rp(inSum(tx))}.`;
+  if (/keluar|abis|habis|pengeluaran|boros|belanja/.test(t)){
+    const per = {};
+    tx.filter(x => x.type === 'out').forEach(x => { per[x.cat] = (per[x.cat] || 0) + x.amt; });
+    const top = Object.entries(per).sort((a, b) => b[1] - a[1])[0];
+    return `Bulan ini keluar ${rp(outSum(tx))}${top ? `, paling gede ${catOf(top[0]).n} ${rp(top[1])}` : ''}.`;
+  }
+  if (/skripsi|bab/.test(t)) return `Skripsi ${Math.round(babPct() * 100)}% rata-rata semua bab.`;
+  if (/tugas/.test(t)){
+    const n = S.tasks.filter(x => !x.done).length;
+    return n ? `Ada ${n} tugas yang belum kelar.` : 'Nggak ada tugas yang nunggu.';
+  }
+  return null;
+}
+
 /* Nanya ke model yang jalan di HP. Dia nggak dikasih alat sama sekali — cuma
    potret data buat dibaca — jadi jalur ini nggak bisa ngubah apa pun. */
 async function aiTanyaLokal(text){
@@ -866,7 +908,9 @@ async function aiSend(text){
        Pola duluan — kalau kalimatnya emang catatan, model nggak usah dilibatin
        sama sekali, dan nggak ada yang bisa diubah sama tebakan. */
     if (!aiLokal(text)){
-      if (AL.nyala()) await aiTanyaLokal(text);
+      const pasti = jawabCepat(text);
+      if (pasti) aiBubble('ai', pasti);
+      else if (AL.nyala()) await aiTanyaLokal(text);
       else aiBubble('ai', 'Asistennya lagi nggak nyambung ke server, jadi yang jalan cuma pencatatan cepat. Coba tulis kayak "2rb makan", "berat 67,5", atau "3 gelas".');
     }
     AI.simpan_chat(); AI.busy = false; render();

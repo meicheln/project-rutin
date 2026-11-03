@@ -303,22 +303,59 @@ export async function jalan(t) {
   t.eq(bawaan.ada, 'available', 'kalau Prompt API ada, statusnya dibaca apa adanya');
   t.ok(/^gagal:/.test(bawaan.meledak), 'Prompt API yang error nggak bikin layar pemeriksaan mati');
 
-  // pilihan model: ganti model harus matiin yang lagi kepasang, bukan diem-diem
-  // jalanin bobot lama di bawah nama baru
-  const pilih = await page.evaluate(() => {
-    const h = { bawaan: AL.pilihan().id };
-    LS.set('rutin.alNyala', 1); AL.pipe = 'pura-pura';
-    AL.pilih('qwen');
-    h.sesudah = AL.pilihan().id; h.ikutMati = !AL.nyala() && AL.pipe === null;
-    AL.pilih('ngawur-nggak-ada');
-    h.ngawurDitolak = AL.pilihan().id === h.sesudah;
-    AL.pilih('gemma');
-    return h;
+  // ---------- angka dijawab kode, bukan model ----------
+  // Ini bukan kehati-hatian, ini hasil ukur: Gemma 3 1B dikasih runtutan bernilai 0
+  // jawab "6", dikasih 5 jawab "10". Angka karangan yang kelihatan masuk akal itu
+  // kegagalan terparah di aplikasi pencatat, karena nggak ada cara buat tau itu salah.
+  const pasti = await page.evaluate(() => {
+    S.txns.length = 0; S.badan.berat.length = 0;
+    S.txns.push({ id:uid(), d:today(), type:'out', amt:25000, cat:'makan', note:'a' });
+    S.txns.push({ id:uid(), d:today(), type:'out', amt:15000, cat:'transport', note:'b' });
+    S.txns.push({ id:uid(), d:today(), type:'in',  amt:1500000, cat:'lainin', note:'c' });
+    S.badan.berat.push({ d:today(), kg:67.5 });
+    commit(false);
+    return {
+      keluar:   jawabCepat('bulan ini gua keluar berapa?'),
+      masuk:    jawabCepat('pemasukan gua berapa?'),
+      berat:    jawabCepat('berat gua terakhir berapa?'),
+      runtutan: jawabCepat('runtutan gua berapa hari?'),
+      bukanTanya: jawabCepat('2rb makan'),
+      nggakKenal: jawabCepat('cuaca besok gimana?'),
+      runtutanAsli: streak(),
+    };
   });
-  t.ok(/gemma/i.test(pilih.bawaan), 'bawaannya model yang lebih ngerti Indonesia');
-  t.ok(/Qwen/i.test(pilih.sesudah), 'bisa ganti ke model yang lebih kecil');
-  t.ok(pilih.ikutMati, 'ganti model matiin yang lagi kepasang — bobot lama nggak kepakai diam-diam');
-  t.ok(pilih.ngawurDitolak, 'nama model yang nggak ada diabaikan, bukan bikin pilihan kosong');
+  t.ok(/40\.000/.test(pasti.keluar), 'pengeluaran bulan ini dihitung kode, persis: ' + pasti.keluar);
+  t.ok(/paling gede/.test(pasti.keluar), 'sekalian nyebut kategori paling boros, yang modelnya nggak bisa');
+  t.ok(/1\.500\.000/.test(pasti.masuk), 'pemasukan dihitung kode: ' + pasti.masuk);
+  t.ok(/67,5 kg/.test(pasti.berat), 'berat terakhir dijawab persis: ' + pasti.berat);
+  t.ok(pasti.runtutan.includes(String(pasti.runtutanAsli)),
+    `runtutan dijawab persis sama kayak hitungan aplikasinya (${pasti.runtutanAsli}): ` + pasti.runtutan);
+  // nol diuji sendiri: ini nilai yang modelnya ngarang terus — dipaksa 0 dia jawab 6, dipaksa 5 dia jawab 10
+  const nol = await page.evaluate(() => {
+    const asli = window.streak; window.streak = () => 0;
+    const j = jawabCepat('runtutan gua berapa hari?');
+    window.streak = asli; return j;
+  });
+  t.ok(/belum ada hari/.test(nol) && !/\b[1-9]\d*\b/.test(nol),
+    'runtutan 0 dijawab 0, bukan angka yang enak didenger: ' + nol);
+  t.eq(pasti.bukanTanya, null, 'kalimat catatan nggak dicegat jadi pertanyaan');
+  t.eq(pasti.nggakKenal, null, 'pertanyaan di luar data dilempar ke jalur lain, bukan dikarang');
+
+  // urutan: jawaban pasti harus ngedahuluin model, bukan sebaliknya
+  await page.evaluate(() => {
+    Cloud.ready = false; AI.cfg = { key:'', model:'' }; AI.save(); AI.raw = [];
+    LS.set('rutin.alNyala', 1); AL.dipanggil = 0;
+    AL.muat = async () => { AL.dipanggil++; return async () => [{ generated_text:[{ role:'assistant', content:'99 juta' }] }]; };
+    paintAI();
+  });
+  await page.fill('#aiText', 'bulan ini gua keluar berapa?'); await page.click('#aiSend');
+  await page.waitForTimeout(900);
+  const urut = await page.evaluate(() => ({ dipanggil: AL.dipanggil,
+    balasan: [...document.querySelectorAll('#aiLog .msg.ai')].pop().textContent }));
+  t.eq(urut.dipanggil, 0, 'pertanyaan yang kodenya bisa jawab nggak nyentuh model sama sekali');
+  t.ok(/40\.000/.test(urut.balasan) && !/99/.test(urut.balasan),
+    'yang kebaca penggunanya angka dari kode, bukan karangan model: ' + urut.balasan);
+  await page.evaluate(() => { AL.matikan(); });
 
   // bobot setengah-presisi ditanya ke GPU-nya, bukan ditebak. Salah tebak di sini
   // bukan "agak pelan" tapi gagal muat sesudah ngunduh ratusan MB.
