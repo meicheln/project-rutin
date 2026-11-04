@@ -210,6 +210,156 @@ const PROGRAM = {
     ]
   },
 
+  /* ---------- gaya Chris Bumstead ----------
+     Dua sesi di bawah disalin dari video channel Chris Bumstead sendiri, bukan dari
+     ingatan: "This Back Workout Won Me 6 Olympias" (ZQPVYJc1cpM) dan "This Chest
+     Workout Won Me 6 Olympias" (ynbS3UZT2O8). Urutan, jumlah set, dan skema
+     rest-pause/100-rep diambil dari yang dia omongin di situ.
+
+     Dua sesi lainnya (kaki & bahu-lengan) NGGAK ada videonya di seri itu — pas
+     direkam dia malah nanya penonton mau body part apa berikutnya. Jadi dua itu
+     dibangun dari pola yang dia sebutin sendiri dan berlaku se-minggu: satu
+     angkatan berat dulu, lalu 10x10 buat volume, lalu tri-set tiga sudut buat
+     otot sekunder. Ditandai jelas di 'fokus' biar nggak ketuker sama yang disalin.
+
+     Catatan jujur: ini program persiapan Olympia. Volumenya gede dan ditujukan
+     buat orang yang pulihnya dibantu segala hal. Dia sendiri bilang di videonya:
+     "if you can't handle enough volume, cut a set out." */
+
+  cbPull: {
+    n:'CBum Pull — Punggung & Bisep', jenis:'gym', menit:80, warna:'--c-violet', ikon:'🏆',
+    fokus:'Disalin dari video Chris Bumstead "This Back Workout Won Me 6 Olympias". Lat pulldown rest-pause buat pembuka, dua tri-set, ditutup 100 rep rear delt. Istirahat antar gerakan di tri-set = waktu jalan ke alat berikutnya.',
+    blok:[
+      { n:'Pemanasan', m:8, ex:[
+        {id:'cbb_w1', n:'Band pull-apart + scapular hang', set:2, rep:'15 / 20 dtk', ist:'30 dtk',
+         cue:'Buka bahu dan gantung dulu. Lat pulldown nanti juga sekalian jadi pemanasan — dia emang naruhnya di depan buat itu.'},
+      ]},
+      { n:'1. Gerakan utama', m:14, catatan:'Cuma 2 set kerja. Set 1 satu rest-pause, set 2 dua rest-pause.', ex:[
+        {id:'cbb_m1', n:'Lat pulldown genggam terlentang (supinated)', set:2, rep:'8 + rest-pause', ist:'2,5 mnt', log:true, otot:'punggung',
+         cue:'Target 8 rep terus berhenti. Tarik napas 10–15 detik, lanjut lagi — itu satu rest-pause. Set kedua diulang dua kali. Pas ngulur, bahu bener-bener kebuka penuh; mulai gerakannya dari narik tulang belikat ke kantong belakang, jangan dari siku.'},
+      ]},
+      { n:'2. Tri-set ketebalan', m:24, catatan:'Tiga sudut berturut tanpa istirahat. Jalan ke alat berikutnya itu istirahatnya.', ex:[
+        {id:'cbb_t1', n:'T-bar row', set:3, rep:'10', ist:'jalan', log:true, otot:'punggung',
+         cue:'Mulai dari yang paling kuat. Siku nempel badan, tarik lewat titik berat badan — itu yang maksa punggung tengah kekontraksi.'},
+        {id:'cbb_t2', n:'Row genggam pronasi (Hammer Strength / mesin)', set:3, rep:'10', ist:'jalan', log:true, otot:'punggung',
+         cue:'Sudut kedua. Yang dominan udah capek, jadi yang lemah kepaksa kerja.'},
+        {id:'cbb_t3', n:'High row', set:3, rep:'12', ist:'2 mnt', log:true, otot:'punggung',
+         cue:'Nggak ada alatnya? Taruh bangku incline di depan kabel atau lat pulldown, duduk, gerakannya mirip. Dia sendiri yang nyaranin itu.'},
+      ]},
+      { n:'3. Tri-set bisep', m:18, catatan:'Pola yang sama kayak punggung — dia sengaja nyamain rangsangannya.', ex:[
+        {id:'cbb_b1', n:'EZ bar curl genggam terbalik (reverse grip)', set:3, rep:'10', ist:'jalan', log:true, otot:'bisep',
+         cue:'Dia pakai ini buat ngebangun lengan bawah dan nutup celah insersi bisep yang tinggi.'},
+        {id:'cbb_b2', n:'Hammer curl dumbbell', set:3, rep:'10', ist:'jalan', log:true, otot:'bisep',
+         cue:'Telapak saling hadap. Kena brachialis, yang ndorong bisep kelihatan lebih tebal dari samping.'},
+        {id:'cbb_b3', n:'Preacher curl', set:3, rep:'12', ist:'2 mnt', log:true, otot:'bisep',
+         cue:'Terakhir karena paling ngisolasi. Nggak bisa curang pakai ayunan badan di sini.'},
+      ]},
+      { n:'4. Penutup 100 rep', m:11, catatan:'10 set × 10 rep rear delt. Beban jangan berat di awal.', ex:[
+        {id:'cbb_f1', n:'Rear delt fly (mesin / kabel)', set:10, rep:'10', ist:'45 dtk', log:true, otot:'bahu',
+         cue:'Set pertama JANGAN sampai gagal angkat — tapi tetep kerasa berat. Set kesepuluh harusnya susah banget. Rear delt yang nyambungin punggung ke bahu; yang cuma lateral raise nggak bakal dapet.'},
+      ]},
+      { n:'Pendinginan', m:5, ex:[
+        {id:'cbb_c1', n:'Peregangan lat, dada, bisep', set:1, rep:'45 dtk tiap pos', ist:'—', cue:'Lat yang ketat bikin rentang pulldown pendek minggu depan.'},
+      ]},
+    ]
+  },
+
+  cbPush: {
+    n:'CBum Push — Dada & Trisep', jenis:'gym', menit:86, warna:'--c-info', ikon:'🏆',
+    fokus:'Disalin dari video Chris Bumstead "This Chest Workout Won Me 6 Olympias". Satu angkatan berat, lalu 100 rep chest press, lalu trisep dari tiga sudut.',
+    blok:[
+      { n:'Pemanasan', m:8, ex:[
+        {id:'cbd_w1', n:'Band pull-apart + push-up ringan', set:2, rep:'15 / 10', ist:'30 dtk', cue:'Bahu dibuka dulu sebelum didorong.'},
+      ]},
+      { n:'1. Bangun kekuatan dengan aman', m:18, ex:[
+        {id:'cbd_m1', n:'Dumbbell press', set:4, rep:'8', ist:'2,5 mnt', int:'berat tapi terkontrol', log:true, otot:'dada',
+         cue:'Dia sengaja NGGAK nyambung ke barbell bench berat sesudah ini. Dumbbell dulu karena bahunya lebih aman di rentang penuh.'},
+      ]},
+      { n:'2. Volume serius — 100 rep', m:22, catatan:'10 set × 10 rep, istirahat 60 detik. Bebannya tetap, repnya yang turun.', ex:[
+        {id:'cbd_v1', n:'Chest press mesin', set:10, rep:'10', ist:'60 dtk', log:true, otot:'dada',
+         cue:'Pilih beban yang set pertamanya bisa 12 rep. Set terakhir paling cuma 8 — turun sekitar 20%, itu normal dan emang targetnya. Kalau udah bisa 10 rep di semua set, baru naikin beban.'},
+      ]},
+      { n:'3. Tri-set trisep', m:20, catatan:'Tiga posisi panjang otot yang beda: tengah, pendek, panjang.', ex:[
+        {id:'cbd_t1', n:'JM press barbell', set:3, rep:'10', ist:'jalan', log:true, otot:'trisep',
+         cue:'Campuran close-grip bench sama skull crusher. Siku turun ke arah dada, bukan ke dahi.'},
+        {id:'cbd_t2', n:'Tricep dip mesin duduk', set:3, rep:'12', ist:'jalan', log:true, otot:'trisep',
+         cue:'Posisi trisep paling pendek. Siku nempel badan.'},
+        {id:'cbd_t3', n:'French press tali', set:3, rep:'15', ist:'2 mnt', log:true, otot:'trisep',
+         cue:'Posisi trisep paling panjang — ini yang paling ngeregang. Ditaruh terakhir karena kalau duluan, sisanya nggak bakal keangkat.'},
+      ]},
+      { n:'4. Benerin titik lemah', m:12, catatan:'Super set dua gerakan, buat ngabisin trisep sekalian jaga bahu.', ex:[
+        {id:'cbd_f1', n:'Tricep extension kabel satu tangan (katrol atas)', set:3, rep:'12 / sisi', ist:'jalan', log:true, otot:'trisep',
+         cue:'Satu tangan biar sisi yang lemah ketahuan dan kepaksa ngejar.'},
+        {id:'cbd_f2', n:'Face pull katrol atas', set:3, rep:'15', ist:'90 dtk', log:true, otot:'bahu',
+         cue:'Dia bilang pelatihnya nyelipin ini buat nambal bagian yang lemah pas mendorong. Bahu belakang sehat = bench aman.'},
+      ]},
+      { n:'Pendinginan', m:6, ex:[
+        {id:'cbd_c1', n:'Peregangan dada, bahu depan, trisep', set:1, rep:'45 dtk tiap pos', ist:'—', cue:'Dada ketat bikin bahu maju.'},
+      ]},
+    ]
+  },
+
+  cbKaki: {
+    n:'CBum Kaki — pola yang sama', jenis:'gym', menit:80, warna:'--c-lime', ikon:'🧩',
+    fokus:'BUKAN salinan video — seri "Won Me 6 Olympias" belum ada sesi kakinya. Ini pola yang dia sebut sendiri berlaku se-minggu: satu angkatan berat, lalu 10x10 buat volume, lalu tri-set tiga sudut. Gerakannya pilihan gua, bukan pilihan dia.',
+    blok:[
+      { n:'Pemanasan', m:10, ex:[
+        {id:'cbk_w1', n:'Sepeda statis + leg swing', set:1, rep:'5 menit / 10 tiap arah', ist:'—', cue:'Sendi panas dulu. Kaki paling gampang cedera kalau dingin.'},
+        {id:'cbk_w2', n:'Goblet squat ringan', set:2, rep:'10', ist:'45 dtk', cue:'Pola gerakannya dulu, bukan bebannya.'},
+      ]},
+      { n:'1. Bangun kekuatan dengan aman', m:20, ex:[
+        {id:'cbk_m1', n:'Hack squat / leg press', set:4, rep:'8', ist:'2,5 mnt', log:true, otot:['kuadrisep','glute'],
+         cue:'Mesin, bukan barbell — sejalan sama alasan dia milih dumbbell di sesi dada: punggung nggak ikut jadi faktor pembatas.'},
+      ]},
+      { n:'2. Volume serius — 100 rep', m:22, catatan:'10 set × 10 rep, istirahat 60 detik.', ex:[
+        {id:'cbk_v1', n:'Leg extension', set:10, rep:'10', ist:'60 dtk', log:true, otot:'kuadrisep',
+         cue:'Aturan yang sama: beban yang set pertamanya bisa 12 rep. Siap-siap kaki kebakar.'},
+      ]},
+      { n:'3. Tri-set belakang kaki', m:20, ex:[
+        {id:'cbk_t1', n:'Romanian deadlift', set:3, rep:'10', ist:'jalan', log:true, otot:['hamstring','glute'],
+         cue:'Pinggul mundur, lutut cuma nekuk dikit. Berhenti pas hamstring ketarik maksimal.'},
+        {id:'cbk_t2', n:'Lying leg curl', set:3, rep:'12', ist:'jalan', log:true, otot:'hamstring',
+         cue:'Sudut kedua — lutut nekuk, panggul diem.'},
+        {id:'cbk_t3', n:'Hip thrust', set:3, rep:'12', ist:'2 mnt', log:true, otot:'glute',
+         cue:'Tahan sebentar di atas. Glute itu yang bikin siluet kaki penuh dari samping.'},
+      ]},
+      { n:'4. Betis', m:8, ex:[
+        {id:'cbk_f1', n:'Standing calf raise', set:4, rep:'15', ist:'60 dtk', log:true, otot:'betis',
+         cue:'Turun sampai tumit di bawah pijakan, naik sampai jinjit penuh. Rentang setengah = betis setengah.'},
+      ]},
+    ]
+  },
+
+  cbBahu: {
+    n:'CBum Bahu & Lengan — pola yang sama', jenis:'gym', menit:72, warna:'--c-clay', ikon:'🧩',
+    fokus:'BUKAN salinan video — seri itu belum ada sesi bahu-lengannya. Pola strukturnya dari dia, gerakannya pilihan gua. Rear delt dapet jatah paling gede karena itu yang dia tegesin paling sering diabaikan orang.',
+    blok:[
+      { n:'Pemanasan', m:8, ex:[
+        {id:'cbs_w1', n:'Band pull-apart + shoulder dislocate', set:2, rep:'15 / 10', ist:'30 dtk', cue:'Bahu itu sendi paling gampang ngambek. Jangan dilewat.'},
+      ]},
+      { n:'1. Bangun kekuatan dengan aman', m:16, ex:[
+        {id:'cbs_m1', n:'Shoulder press dumbbell duduk', set:4, rep:'8', ist:'2,5 mnt', log:true, otot:'bahu',
+         cue:'Dumbbell biar tiap bahu kerja sendiri-sendiri dan yang lemah ketahuan.'},
+      ]},
+      { n:'2. Volume serius — 100 rep', m:20, catatan:'10 set × 10 rep, istirahat 60 detik.', ex:[
+        {id:'cbs_v1', n:'Lateral raise (dumbbell / kabel)', set:10, rep:'10', ist:'60 dtk', log:true, otot:'bahu',
+         cue:'Beban ringan, dan tetep bakal kerasa brutal di set ke-7. Angkat setinggi bahu aja, jangan pakai ayunan.'},
+      ]},
+      { n:'3. Tri-set lengan', m:20, catatan:'Bisep dan trisep gantian, tiga sudut.', ex:[
+        {id:'cbs_t1', n:'Incline dumbbell curl', set:3, rep:'10', ist:'jalan', log:true, otot:'bisep',
+         cue:'Sandaran miring bikin bisep mulai dari posisi paling panjang.'},
+        {id:'cbs_t2', n:'Overhead tricep extension', set:3, rep:'12', ist:'jalan', log:true, otot:'trisep',
+         cue:'Kepala panjang trisep cuma kena kalau lengan di atas kepala.'},
+        {id:'cbs_t3', n:'Cable curl + rope pushdown (gantian)', set:3, rep:'12 tiap gerakan', ist:'2 mnt', log:true, otot:['bisep','trisep'],
+         cue:'Dua-duanya berturut tanpa istirahat. Lengan penuh darah, itu intinya.'},
+      ]},
+      { n:'4. Penutup rear delt', m:8, ex:[
+        {id:'cbs_f1', n:'Face pull + rear delt fly', set:4, rep:'15 tiap gerakan', ist:'60 dtk', log:true, otot:'bahu',
+         cue:'Bagian yang paling sering dilewat orang. Ini yang nutup bahu nyambung ke trisep pas pakai kaos.'},
+      ]},
+    ]
+  },
+
   basketA: {
     n:'Basket A — Shooting & Handling', jenis:'basket', menit:110, warna:'--c-clay', ikon:'🏀',
     fokus:'Sesi skill murni pas badan masih segar. Dikerjain sebelum angkat beban Push.',

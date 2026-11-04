@@ -47,6 +47,10 @@ Dihitung dari sesi yang terjadwal, kalau semua gerakannya dikerjain.
 Masih ada di aplikasi dan bisa dipasang lagi lewat **Atur jadwal**.
 
 - **Lower A — Reaktif & Kecepatan** — gym, 85 menit
+- **CBum Pull — Punggung & Bisep** — gym, 80 menit
+- **CBum Push — Dada & Trisep** — gym, 86 menit
+- **CBum Kaki — pola yang sama** — gym, 80 menit
+- **CBum Bahu & Lengan — pola yang sama** — gym, 72 menit
 - **Basket A — Shooting & Handling** — basket, 110 menit
 - **Basket B — Finishing & Kombinasi** — basket, 115 menit
 - **Basket C — Volume Shooting (opsional)** — basket, 80 menit
@@ -422,6 +426,238 @@ Siku tetap ngarah ke atas. Kalau sikunya melebar, bebannya kegedean.
 **Mobilitas bahu, dada, punggung atas** — 60 dtk tiap pos
 
 Besok Leg B. Badan atas boleh bener-bener lepas sekarang.
+
+---
+
+## CBum Pull — Punggung & Bisep *(nggak dijadwalin)*
+
+Gym · 80 menit
+
+> Disalin dari video Chris Bumstead "This Back Workout Won Me 6 Olympias". Lat pulldown rest-pause buat pembuka, dua tri-set, ditutup 100 rep rear delt. Istirahat antar gerakan di tri-set = waktu jalan ke alat berikutnya.
+
+### Pemanasan — 8 menit
+
+**Band pull-apart + scapular hang** — 2 × 15 / 20 dtk · istirahat 30 dtk
+
+Buka bahu dan gantung dulu. Lat pulldown nanti juga sekalian jadi pemanasan — dia emang naruhnya di depan buat itu.
+
+### 1. Gerakan utama — 14 menit
+
+*Cuma 2 set kerja. Set 1 satu rest-pause, set 2 dua rest-pause.*
+
+**Lat pulldown genggam terlentang (supinated)** — 2 × 8 + rest-pause · istirahat 2,5 mnt *(punggung)*
+
+Target 8 rep terus berhenti. Tarik napas 10–15 detik, lanjut lagi — itu satu rest-pause. Set kedua diulang dua kali. Pas ngulur, bahu bener-bener kebuka penuh; mulai gerakannya dari narik tulang belikat ke kantong belakang, jangan dari siku.
+
+### 2. Tri-set ketebalan — 24 menit
+
+*Tiga sudut berturut tanpa istirahat. Jalan ke alat berikutnya itu istirahatnya.*
+
+**T-bar row** — 3 × 10 · istirahat jalan *(punggung)*
+
+Mulai dari yang paling kuat. Siku nempel badan, tarik lewat titik berat badan — itu yang maksa punggung tengah kekontraksi.
+
+**Row genggam pronasi (Hammer Strength / mesin)** — 3 × 10 · istirahat jalan *(punggung)*
+
+Sudut kedua. Yang dominan udah capek, jadi yang lemah kepaksa kerja.
+
+**High row** — 3 × 12 · istirahat 2 mnt *(punggung)*
+
+Nggak ada alatnya? Taruh bangku incline di depan kabel atau lat pulldown, duduk, gerakannya mirip. Dia sendiri yang nyaranin itu.
+
+### 3. Tri-set bisep — 18 menit
+
+*Pola yang sama kayak punggung — dia sengaja nyamain rangsangannya.*
+
+**EZ bar curl genggam terbalik (reverse grip)** — 3 × 10 · istirahat jalan *(bisep)*
+
+Dia pakai ini buat ngebangun lengan bawah dan nutup celah insersi bisep yang tinggi.
+
+**Hammer curl dumbbell** — 3 × 10 · istirahat jalan *(bisep)*
+
+Telapak saling hadap. Kena brachialis, yang ndorong bisep kelihatan lebih tebal dari samping.
+
+**Preacher curl** — 3 × 12 · istirahat 2 mnt *(bisep)*
+
+Terakhir karena paling ngisolasi. Nggak bisa curang pakai ayunan badan di sini.
+
+### 4. Penutup 100 rep — 11 menit
+
+*10 set × 10 rep rear delt. Beban jangan berat di awal.*
+
+**Rear delt fly (mesin / kabel)** — 10 × 10 · istirahat 45 dtk *(bahu)*
+
+Set pertama JANGAN sampai gagal angkat — tapi tetep kerasa berat. Set kesepuluh harusnya susah banget. Rear delt yang nyambungin punggung ke bahu; yang cuma lateral raise nggak bakal dapet.
+
+### Pendinginan — 5 menit
+
+**Peregangan lat, dada, bisep** — 45 dtk tiap pos
+
+Lat yang ketat bikin rentang pulldown pendek minggu depan.
+
+---
+
+## CBum Push — Dada & Trisep *(nggak dijadwalin)*
+
+Gym · 86 menit
+
+> Disalin dari video Chris Bumstead "This Chest Workout Won Me 6 Olympias". Satu angkatan berat, lalu 100 rep chest press, lalu trisep dari tiga sudut.
+
+### Pemanasan — 8 menit
+
+**Band pull-apart + push-up ringan** — 2 × 15 / 10 · istirahat 30 dtk
+
+Bahu dibuka dulu sebelum didorong.
+
+### 1. Bangun kekuatan dengan aman — 18 menit
+
+**Dumbbell press** — 4 × 8 · berat tapi terkontrol · istirahat 2,5 mnt *(dada)*
+
+Dia sengaja NGGAK nyambung ke barbell bench berat sesudah ini. Dumbbell dulu karena bahunya lebih aman di rentang penuh.
+
+### 2. Volume serius — 100 rep — 22 menit
+
+*10 set × 10 rep, istirahat 60 detik. Bebannya tetap, repnya yang turun.*
+
+**Chest press mesin** — 10 × 10 · istirahat 60 dtk *(dada)*
+
+Pilih beban yang set pertamanya bisa 12 rep. Set terakhir paling cuma 8 — turun sekitar 20%, itu normal dan emang targetnya. Kalau udah bisa 10 rep di semua set, baru naikin beban.
+
+### 3. Tri-set trisep — 20 menit
+
+*Tiga posisi panjang otot yang beda: tengah, pendek, panjang.*
+
+**JM press barbell** — 3 × 10 · istirahat jalan *(trisep)*
+
+Campuran close-grip bench sama skull crusher. Siku turun ke arah dada, bukan ke dahi.
+
+**Tricep dip mesin duduk** — 3 × 12 · istirahat jalan *(trisep)*
+
+Posisi trisep paling pendek. Siku nempel badan.
+
+**French press tali** — 3 × 15 · istirahat 2 mnt *(trisep)*
+
+Posisi trisep paling panjang — ini yang paling ngeregang. Ditaruh terakhir karena kalau duluan, sisanya nggak bakal keangkat.
+
+### 4. Benerin titik lemah — 12 menit
+
+*Super set dua gerakan, buat ngabisin trisep sekalian jaga bahu.*
+
+**Tricep extension kabel satu tangan (katrol atas)** — 3 × 12 / sisi · istirahat jalan *(trisep)*
+
+Satu tangan biar sisi yang lemah ketahuan dan kepaksa ngejar.
+
+**Face pull katrol atas** — 3 × 15 · istirahat 90 dtk *(bahu)*
+
+Dia bilang pelatihnya nyelipin ini buat nambal bagian yang lemah pas mendorong. Bahu belakang sehat = bench aman.
+
+### Pendinginan — 6 menit
+
+**Peregangan dada, bahu depan, trisep** — 45 dtk tiap pos
+
+Dada ketat bikin bahu maju.
+
+---
+
+## CBum Kaki — pola yang sama *(nggak dijadwalin)*
+
+Gym · 80 menit
+
+> BUKAN salinan video — seri "Won Me 6 Olympias" belum ada sesi kakinya. Ini pola yang dia sebut sendiri berlaku se-minggu: satu angkatan berat, lalu 10x10 buat volume, lalu tri-set tiga sudut. Gerakannya pilihan gua, bukan pilihan dia.
+
+### Pemanasan — 10 menit
+
+**Sepeda statis + leg swing** — 5 menit / 10 tiap arah
+
+Sendi panas dulu. Kaki paling gampang cedera kalau dingin.
+
+**Goblet squat ringan** — 2 × 10 · istirahat 45 dtk
+
+Pola gerakannya dulu, bukan bebannya.
+
+### 1. Bangun kekuatan dengan aman — 20 menit
+
+**Hack squat / leg press** — 4 × 8 · istirahat 2,5 mnt *(kuadrisep, glute)*
+
+Mesin, bukan barbell — sejalan sama alasan dia milih dumbbell di sesi dada: punggung nggak ikut jadi faktor pembatas.
+
+### 2. Volume serius — 100 rep — 22 menit
+
+*10 set × 10 rep, istirahat 60 detik.*
+
+**Leg extension** — 10 × 10 · istirahat 60 dtk *(kuadrisep)*
+
+Aturan yang sama: beban yang set pertamanya bisa 12 rep. Siap-siap kaki kebakar.
+
+### 3. Tri-set belakang kaki — 20 menit
+
+**Romanian deadlift** — 3 × 10 · istirahat jalan *(hamstring, glute)*
+
+Pinggul mundur, lutut cuma nekuk dikit. Berhenti pas hamstring ketarik maksimal.
+
+**Lying leg curl** — 3 × 12 · istirahat jalan *(hamstring)*
+
+Sudut kedua — lutut nekuk, panggul diem.
+
+**Hip thrust** — 3 × 12 · istirahat 2 mnt *(glute)*
+
+Tahan sebentar di atas. Glute itu yang bikin siluet kaki penuh dari samping.
+
+### 4. Betis — 8 menit
+
+**Standing calf raise** — 4 × 15 · istirahat 60 dtk *(betis)*
+
+Turun sampai tumit di bawah pijakan, naik sampai jinjit penuh. Rentang setengah = betis setengah.
+
+---
+
+## CBum Bahu & Lengan — pola yang sama *(nggak dijadwalin)*
+
+Gym · 72 menit
+
+> BUKAN salinan video — seri itu belum ada sesi bahu-lengannya. Pola strukturnya dari dia, gerakannya pilihan gua. Rear delt dapet jatah paling gede karena itu yang dia tegesin paling sering diabaikan orang.
+
+### Pemanasan — 8 menit
+
+**Band pull-apart + shoulder dislocate** — 2 × 15 / 10 · istirahat 30 dtk
+
+Bahu itu sendi paling gampang ngambek. Jangan dilewat.
+
+### 1. Bangun kekuatan dengan aman — 16 menit
+
+**Shoulder press dumbbell duduk** — 4 × 8 · istirahat 2,5 mnt *(bahu)*
+
+Dumbbell biar tiap bahu kerja sendiri-sendiri dan yang lemah ketahuan.
+
+### 2. Volume serius — 100 rep — 20 menit
+
+*10 set × 10 rep, istirahat 60 detik.*
+
+**Lateral raise (dumbbell / kabel)** — 10 × 10 · istirahat 60 dtk *(bahu)*
+
+Beban ringan, dan tetep bakal kerasa brutal di set ke-7. Angkat setinggi bahu aja, jangan pakai ayunan.
+
+### 3. Tri-set lengan — 20 menit
+
+*Bisep dan trisep gantian, tiga sudut.*
+
+**Incline dumbbell curl** — 3 × 10 · istirahat jalan *(bisep)*
+
+Sandaran miring bikin bisep mulai dari posisi paling panjang.
+
+**Overhead tricep extension** — 3 × 12 · istirahat jalan *(trisep)*
+
+Kepala panjang trisep cuma kena kalau lengan di atas kepala.
+
+**Cable curl + rope pushdown (gantian)** — 3 × 12 tiap gerakan · istirahat 2 mnt *(bisep, trisep)*
+
+Dua-duanya berturut tanpa istirahat. Lengan penuh darah, itu intinya.
+
+### 4. Penutup rear delt — 8 menit
+
+**Face pull + rear delt fly** — 4 × 15 tiap gerakan · istirahat 60 dtk *(bahu)*
+
+Bagian yang paling sering dilewat orang. Ini yang nutup bahu nyambung ke trisep pas pakai kaos.
 
 ---
 

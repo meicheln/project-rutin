@@ -34,7 +34,7 @@ export async function jalan(t) {
     t.ok(!p.idDobel, `${p.id}: nggak ada id gerakan yang kembar`);
     t.eq(p.setTakSah, 0, `${p.id}: semua gerakan punya set & rep yang sah`);
   }
-  t.eq(prog.length, 9, 'ada 9 sesi di katalog');
+  t.eq(prog.length, 13, 'ada 13 sesi di katalog (9 lama + 4 gaya CBum)');
 
   // ---------- aturan jadwal ----------
   const jad = await page.evaluate(() => {
