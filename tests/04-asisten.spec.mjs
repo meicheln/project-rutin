@@ -229,6 +229,35 @@ export async function jalan(t) {
   t.eq(jatuh.amt, 15000, 'jumlahnya bener walau servernya mati');
   t.ok(/nggak kegapai/.test(jatuh.log), 'sebab gagalnya tetap dikasih tau, bukan ditutupin');
 
+  // muat() yang ASLI harus ikut kejalan. Semua tes lain nge-stub AL.muat, jadi badan
+  // fungsinya nggak pernah jalan — dan di situlah "this.pilihan is not a function"
+  // lolos sampai nongol di HP penggunanya sesudah nunggu unduhan. Pustakanya diganti
+  // modul palsu lewat data: URL: nol unduhan, tapi jalurnya asli dari ujung ke ujung.
+  const muat = await page.evaluate(async () => {
+    const simpanPustaka = AL.PUSTAKA;
+    AL.pipe = null; AL.muatan = null; window.__panggil = null;
+    AL.PUSTAKA = 'data:text/javascript,' + encodeURIComponent(
+      'export async function pipeline(tugas, model, opsi){'
+      + ' window.__panggil = { tugas, model, dtype: opsi.dtype, device: opsi.device };'
+      + ' if (opsi.progress_callback) opsi.progress_callback({ status:"progress", loaded:5, total:10, file:"bobot" });'
+      + ' return async () => [{ generated_text:[{ role:"assistant", content:"oke" }] }]; }');
+    const lapor = [];
+    try{
+      await AL.muat((p, f) => lapor.push([p, f]));
+      const jawab = await AL.tanya('tes');
+      return { ok:true, panggil: window.__panggil, lapor, jawab, nyala: AL.nyala() };
+    }catch(e){ return { ok:false, galat: String(e.message || e) }; }
+    finally { AL.PUSTAKA = simpanPustaka; AL.matikan(); }
+  });
+  t.ok(muat.ok, 'muat() yang asli jalan sampai selesai tanpa meledak: ' + (muat.galat || ''));
+  t.eq(muat.panggil && muat.panggil.model, 'onnx-community/gemma-3-1b-it-ONNX',
+    'model yang dimuat sama persis kayak yang ada di katalog');
+  t.eq(muat.panggil && muat.panggil.device, 'webgpu', 'dimuat ke webgpu, bukan ke CPU diam-diam');
+  t.ok(/^q4/.test((muat.panggil && muat.panggil.dtype) || ''), 'dtype kepilih dari kemampuan GPU');
+  t.eq(muat.lapor.length, 1, 'kemajuan unduhan diterusin ke pemanggilnya, bukan ketelen');
+  t.ok(muat.nyala, 'sesudah kemuat, modelnya ketandain nyala');
+  t.ok(/oke/.test(muat.jawab || ''), 'tanya() ngembaliin isi jawaban modelnya: ' + muat.jawab);
+
   // ---------- kandang model lokal ----------
   // Kandangnya bukan daftar putih alat, tapi nggak ada alat sama sekali: model
   // cuma dikasih potret data buat dibaca, dan jawabannya dipakai sebagai teks.

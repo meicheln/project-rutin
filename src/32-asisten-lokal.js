@@ -67,7 +67,7 @@ const AL = {
     if (this.muatan) return this.muatan;           // dipencet dua kali jangan ngunduh dua kali
     this.muatan = (async () => {
       const { pipeline } = await import(this.PUSTAKA);
-      const pipe = await pipeline('text-generation', this.pilihan().id, {
+      const pipe = await pipeline('text-generation', AL_MODEL.id, {
         device: 'webgpu', dtype: await this.dtype(),
         progress_callback: p => {
           if (!lapor) return;
