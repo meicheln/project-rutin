@@ -24,7 +24,10 @@ permissions:
 
 jobs:
   apk:
-    runs-on: ubuntu-latest
+    # ubuntu-latest pindah ke Ubuntu 26.04 Oktober 2026 dan Playwright 1.56 nolak
+    # jalan di situ ('does not support chromium on ubuntu26.04-x64'). Dipaku ke 24.04
+    # sampai Playwright-nya dukung — naikin balik ke -latest begitu udah.
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
 
