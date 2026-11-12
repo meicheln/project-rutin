@@ -59,3 +59,23 @@ kode.**
 - Betis & perut di program cuma pas-pasan di 10 set
 - Kolom "terakhir" dicocokin per nomor set; kalau minggu lalu cuma 2 dari 4
   set yang diisi, baris 3–4 kosong walau sebenernya ngangkat
+
+## Model lokal: dicoba, diukur, dibuang (12 November)
+
+Dipasang 4 November, dibuang 12 November sesudah penggunanya nyoba di HP:
+"jelek, nggak bisa apa-apa, malah bikin ngelag."
+
+Itu cocok sama angka yang keukur duluan di GPU desktop: Gemma 3 1B ngarang
+1 dari 5 jawaban, Qwen2.5 0,5B 130 detik buat satu jawaban dan hasilnya
+sampah. Yang ketambahan dari HP cuma satu hal baru: lag.
+
+Yang disimpen, karena ini yang beneran kepakai:
+- parseCepat() — nyatet dari kalimat, pencocokan pola, nggak bisa ngarang
+- jawabCepat() — pertanyaan angka diitung kode, selalu tepat
+
+Pelajarannya: tiap pertanyaan yang layak ditanya ke aplikasi pencatat itu
+punya jawaban pasti yang aplikasinya emang bisa hitung. Model cuma nambah
+ketidakpastian di tempat yang nggak butuh ketidakpastian.
+
+Jangan diulang kecuali ada model yang jelas-jelas beda kelas DAN diuji dulu
+di HP-nya sendiri, bukan di komputer.

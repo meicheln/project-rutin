@@ -878,22 +878,6 @@ function jawabCepat(teks){
   return null;
 }
 
-/* Nanya ke model yang jalan di HP. Dia nggak dikasih alat sama sekali — cuma
-   potret data buat dibaca — jadi jalur ini nggak bisa ngubah apa pun. */
-async function aiTanyaLokal(text){
-  aiThinking(true);
-  try{
-    const jawab = await AL.tanya(text);
-    aiThinking(false);
-    /* Ditandain. Model setengah miliar parameter jauh lebih gampang ngarang
-       daripada yang di server, dan yang baca berhak tau jawabannya dari mana. */
-    aiBubble('ai', (jawab || 'Nggak kejawab.') + '\n\n— dijawab model lokal di HP ini');
-  }catch(e){
-    aiThinking(false);
-    aiBubble('ai', 'Model lokalnya gagal jalan: ' + (e.message || e));
-  }
-}
-
 async function aiSend(text){
   if (AI.busy || !text.trim()) return;
   AI.busy = true;
@@ -901,17 +885,15 @@ async function aiSend(text){
   aiBubble('me', text);
 
   /* Belum ada jalur ke model sama sekali (server mati, kunci nggak ada).
-     Dulu kotak ini mati total di keadaan ini. Sekarang pengurai lokal yang
-     jawab, dan obrolannya nggak dicatat ke AI.raw — ini bukan percakapan. */
+     Dulu kotak ini mati total di keadaan ini. Sekarang dua jalur yang nggak
+     butuh server yang jawab, dan obrolannya nggak dicatat ke AI.raw — ini
+     bukan percakapan.
+     Nyatet pakai pola dulu; kalau bukan catatan, pertanyaannya diitung kode.
+     Dua-duanya nggak bisa ngarang. */
   if (!AI.siap()){
-    /* Pembagiannya tegas: nyatet pakai pencocokan pola, nanya pakai model.
-       Pola duluan — kalau kalimatnya emang catatan, model nggak usah dilibatin
-       sama sekali, dan nggak ada yang bisa diubah sama tebakan. */
     if (!aiLokal(text)){
       const pasti = jawabCepat(text);
-      if (pasti) aiBubble('ai', pasti);
-      else if (AL.nyala()) await aiTanyaLokal(text);
-      else aiBubble('ai', 'Asistennya lagi nggak nyambung ke server, jadi yang jalan cuma pencatatan cepat. Coba tulis kayak "2rb makan", "berat 67,5", atau "3 gelas".');
+      aiBubble('ai', pasti || 'Asistennya lagi nggak nyambung ke server, jadi yang jalan cuma pencatatan cepat sama pertanyaan angka. Coba tulis kayak "2rb makan", "berat 67,5", atau tanya "bulan ini keluar berapa".');
     }
     AI.simpan_chat(); AI.busy = false; render();
     $('#aiLog').scrollTop = $('#aiLog').scrollHeight;

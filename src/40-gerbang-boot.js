@@ -168,6 +168,17 @@ function gate(step){
   Native.init();
   Notif.apply();
 
+  /* Model lokal dibuang sesudah diuji di HP: jawabannya ngarang dan bikin ngelag.
+     Bobotnya bisa nyisa ratusan MB di penyimpanan buat yang udah sempat ngunduh,
+     dan nggak ada lagi yang mau pakai — jadi dibersihin sekali, lalu ditandai
+     biar nggak ngulang-ngulang tiap boot. Aman buat yang nggak pernah ngunduh:
+     nggak ada cache-nya, nggak ada yang kehapus. */
+  if (!LS.get('rutin.modelDibersihin', 0)){
+    LS.del('rutin.alNyala'); LS.del('rutin.alModel');
+    try{ caches.keys().then(n => n.filter(x => /transformers/i.test(x)).forEach(x => caches.delete(x))); }catch(e){}
+    LS.set('rutin.modelDibersihin', 1);
+  }
+
   const mode = LS.get('rutin.mode', null);
 
   if (Cloud.configured()){

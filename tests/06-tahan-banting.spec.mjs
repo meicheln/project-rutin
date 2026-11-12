@@ -254,6 +254,27 @@ export async function jalan(t) {
   const gantiHari = await page.evaluate(() => typeof lastDay === 'string' && lastDay === today());
   t.ok(gantiHari, 'aplikasi nyimpen tanggal aktif buat deteksi pergantian hari');
 
+  // ---------- sisa model lokal dibersihin ----------
+  // Model lokal dibuang sesudah diuji di HP. Yang udah terlanjur ngunduh nyimpen
+  // ratusan MB bobot yang nggak ada lagi yang make — kalau nggak dihapus, itu cuma
+  // sampah di HP orang. Dan cache punya fitur lain nggak boleh ikut kena.
+  await page.evaluate(async () => {
+    LS.set('rutin.alNyala', 1); LS.set('rutin.alModel', 'gemma');
+    LS.del('rutin.modelDibersihin');
+    await caches.open('transformers-cache');
+    await caches.open('rutin-punya-sendiri');
+  });
+  await page.reload(); await page.waitForTimeout(1500);
+  const bersih = await page.evaluate(async () => ({
+    kunci: [LS.get('rutin.alNyala', null), LS.get('rutin.alModel', null)],
+    ditandai: LS.get('rutin.modelDibersihin', 0),
+    sisa: await caches.keys(),
+  }));
+  t.eq(JSON.stringify(bersih.kunci), '[null,null]', 'penanda model lokal dihapus');
+  t.ok(!bersih.sisa.includes('transformers-cache'), 'bobot model yang kesimpen ikut dihapus');
+  t.ok(bersih.sisa.includes('rutin-punya-sendiri'), 'cache punya aplikasi sendiri nggak ikut kena');
+  t.eq(bersih.ditandai, 1, 'ditandai udah dibersihin, biar nggak ngulang tiap boot');
+
   t.ok(app.galat.length === 0, 'nggak ada galat di console: ' + app.galat.join(' | '));
   await app.tutup();
 }
