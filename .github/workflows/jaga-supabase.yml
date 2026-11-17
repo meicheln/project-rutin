@@ -26,11 +26,15 @@ jobs:
         env:
           URL: ${{ secrets.SUPABASE_URL }}
         run: |
+          # Merah, bukan ijo, kalau belum diatur. Dulu di sini exit 0: penjaganya
+          # nggak pernah ngeping apa pun tapi centangnya ijo tiap 3 hari, jadi
+          # kelihatan kayak lagi jaga padahal nggak. Penjaga yang nggak jaga harus
+          # kelihatan nggak jaga.
           if [ -z "$URL" ]; then
-            echo "::warning::Secret SUPABASE_URL belum diisi — penjaga nggak jalan."
+            echo "::error::Secret SUPABASE_URL belum diisi — penjaga ini NGGAK JALAN dan proyeknya nggak dijaga."
             echo "Isi di Settings > Secrets and variables > Actions, isinya:"
             echo "  https://<ref-proyek>.supabase.co"
-            exit 0
+            exit 1
           fi
           ep="${URL%/}/functions/v1/asisten"
           kode=$(curl -s -o /dev/null -w '%{http_code}' --max-time 30 "$ep" || echo 000)

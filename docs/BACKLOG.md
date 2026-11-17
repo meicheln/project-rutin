@@ -55,10 +55,18 @@ kode.**
 ## Utang yang belum dibayar
 
 - `rutin_galat` masih 0 baris — penyebab error asisten masih belum kebaca
-- GitHub Pages belum dinyalain, workflow "Deploy demo" merah tiap push
+- ~~GitHub Pages belum dinyalain, workflow "Deploy demo" merah tiap push~~
+  Workflow-nya dihapus 17 Nov: nggak pernah sukses sekali pun, dan merah tiap
+  push bikin kegagalan yang beneran ikut kelewat. Kalau mau demo publik, itu
+  keputusan pemiliknya — repo-nya publik, jadi demonya juga bakal publik.
+- **Penjaga Supabase ijo palsu sampai 17 Nov.** Secret SUPABASE_URL nggak pernah
+  diisi, jadi dia exit 0 tanpa ngeping apa pun — centang ijo tiap 3 hari. Sekarang
+  merah kalau belum diatur. Yang ngisi secret-nya harus pemiliknya.
 - Betis & perut di program cuma pas-pasan di 10 set
-- Kolom "terakhir" dicocokin per nomor set; kalau minggu lalu cuma 2 dari 4
-  set yang diisi, baris 3–4 kosong walau sebenernya ngangkat
+- ~~Kolom "terakhir" dicocokin per nomor set; kalau minggu lalu cuma 2 dari 4
+  set yang diisi, baris 3–4 kosong walau sebenernya ngangkat~~ Dibenerin 18 Nov:
+  baris yang nggak kecatat pakai set terakhir yang kecatat. Sekalian
+  setTerakhir() cuma dihitung sekali per gerakan, bukan tiap baris.
 
 ## Model lokal: dicoba, diukur, dibuang (12 November)
 

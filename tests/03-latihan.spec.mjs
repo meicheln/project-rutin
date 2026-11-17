@@ -199,6 +199,7 @@ export async function jalan(t) {
   t.eq(ref.rekorKosong, 0, 'gerakan tanpa riwayat rekornya nol \u2014 jadi sesi pertama nggak diklaim rekor');
   t.eq(ref.rekorAbaikanRepGila, 82.3, 'set di atas 12 rep dibuang dari rekor, sama kayak di grafik');
 
+
   // ---------- progres beban ----------
   const progres = await page.evaluate(() => {
     const L = LT();
@@ -486,6 +487,32 @@ export async function jalan(t) {
   t.eq(ui.kesimpan, '{"kg":"65","rep":"8"}', 'yang kesalin beneran masuk ke data, bukan cuma nempel di kotak');
   t.ok(/Rekor baru/.test(ui.toast) && /70kg/.test(ui.toast), `rekor baru diumumin: ${ui.toast}`);
   t.eq(ui.toastKedua, '', 'rekor cuma diumumin sekali per gerakan per sesi, bukan tiap ketikan');
+
+  // ---------- kolom "terakhir" di layar sesi ----------
+  // Ditaruh paling ujung: dia nutup layar sesi, dan tes timer di tengah spec
+  // ngandelin layar sesi yang dibuka tes sebelumnya masih kebuka.
+  // Minggu lalu cuma 2 dari 4 set yang dicatat. Orangnya tetap ngangkat set 3–4,
+  // cuma nggak nulis — dulu baris itu kosong "–" dan dia harus nebak dari nol.
+  // Diuji di layar yang kerender, bukan cuma fungsinya.
+  const kolom = await page.evaluate(async () => {
+    const L = LT(), simpan = L.sesi;
+    L.sesi = [{ id:'k1', d:'2026-03-08', sid:'push', ceklis:{},
+                set:{ pu_m1:[{kg:65,rep:8},{kg:65,rep:7}] } }];
+    bukaSesi('push');
+    await new Promise(r => setTimeout(r, 300));
+    const baris = [...document.querySelectorAll('#ses .setlalu')]
+      .filter(b => !b.dataset.isi || b.dataset.isi.startsWith('pu_m1|'))
+      .slice(0, PROGRAM.push.blok.flatMap(b => b.ex).find(e => e.id === 'pu_m1').set)
+      .map(b => b.textContent.trim());
+    tutupSesi();
+    L.sesi = simpan;
+    return baris;
+  });
+  t.eq(kolom.length, 4, 'empat baris set bench press kerender');
+  t.eq(kolom[0], '65×8', 'baris 1 nunjukin set 1 minggu lalu persis');
+  t.eq(kolom[1], '65×7', 'baris 2 nunjukin set 2 minggu lalu persis');
+  t.eq(kolom[2], '65×7', 'baris 3 yang minggu lalu nggak dicatat nunjukin set terakhir yang kecatat, bukan kosong');
+  t.eq(kolom[3], '65×7', 'baris 4 juga — nggak ada baris "–" selama minggu lalu ada angkanya');
 
   t.ok(app.galat.length === 0, 'nggak ada galat di console: ' + app.galat.join(' | '));
   await app.tutup();

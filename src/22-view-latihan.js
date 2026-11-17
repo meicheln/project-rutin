@@ -932,12 +932,18 @@ function gambarSesi(){
               ${e.ist&&e.ist!=='—'?`<button class="isttombol" data-ist="${esc(e.ist)}">⏱</button>`:''}
             </div>
             <div class="excue" id="cue_${e.id}">${esc(e.cue||'')}</div>
-            ${e.log?`<div class="exsets">
-              ${(()=>{ const l = setTerakhir(e.id, d);
-                return l ? `<div class="xs dim" style="margin:-2px 0 2px">Terakhir ${tgl(l.d)} · ketuk angkanya buat nyalin</div>` : ''; })()}
+            ${e.log?(()=>{
+              const l = setTerakhir(e.id, d);                       // sekali per gerakan, bukan per baris
+              const kecatat = l ? l.set.filter(x => x && +x.kg && +x.rep) : [];
+              return `<div class="exsets">
+              ${l ? `<div class="xs dim" style="margin:-2px 0 2px">Terakhir ${tgl(l.d)} · ketuk angkanya buat nyalin</div>` : ''}
               ${[...Array(e.set)].map((_,i)=>{
                 const v = set[i] || {};
-                const lalu = (setTerakhir(e.id, d) || {set:[]}).set[i] || {};
+                /* Baris yang minggu lalu nggak dicatat pakai set terakhir yang kecatat.
+                   Orangnya tetap ngangkat set 3–4, cuma nggak nulis — kosong di situ
+                   bikin dia nebak dari nol padahal angkanya ada dua baris di atas. */
+                const persis = l && l.set[i];
+                const lalu = (persis && +persis.kg && +persis.rep) ? persis : (kecatat[kecatat.length - 1] || {});
                 const adaLalu = +lalu.kg && +lalu.rep;
                 return `<div class="setrow">
                   <span class="setno tnum">${i+1}</span>
@@ -950,7 +956,7 @@ function gambarSesi(){
                 </div>`;
               }).join('')}
               ${set.length && set.some(x=>x&&x.kg&&x.rep) ? `<div class="setvol xs dim">Volume ${Math.round(sum(set, x=>(+x.kg||0)*(+x.rep||0))).toLocaleString('id-ID')} kg</div>`:''}
-            </div>`:''}
+            </div>`; })():''}
           </div>`;
         }).join('')}
       </div>`).join('')}

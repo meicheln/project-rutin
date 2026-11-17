@@ -1,6 +1,6 @@
 <script>
 /* ============================================================
-   RUTIN — asisten Claude di dalam aplikasi
+   RUTIN — asisten AI di dalam aplikasi
    ============================================================ */
 
 const AI = {
@@ -684,7 +684,7 @@ function paintAI(){
             <details class="acc"><summary>Belum nyiapin fungsinya?</summary>
               <div class="body">Sekali doang, dari komputer:
                 <pre class="sql">supabase functions deploy asisten
-supabase secrets set ANTHROPIC_API_KEY=sk-ant-...</pre>
+supabase secrets set GEMINI_API_KEY=...</pre>
                 Langkah lengkapnya ada di <b>docs/SUPABASE.md</b>.</div></details>
             <details class="acc"><summary>Atau simpan kunci di HP ini aja</summary>
               <div class="body">Lebih gampang, tapi kuncinya kesimpan apa adanya di HP.
@@ -703,9 +703,11 @@ supabase secrets set ANTHROPIC_API_KEY=sk-ant-...</pre>
                   <button class="btn ghost block" id="aiConnect">Pakai kunci ini</button>
                 </div></div></details>
           `}
-          <details class="acc"><summary>Cara dapetin kuncinya</summary>
-            <div class="body">Buka <b>console.anthropic.com</b> → daftar → isi saldo (minimal $5) → menu <b>API Keys</b> → <b>Create Key</b> → salin.
-            <br><br>Pemakaian dibayar per pesan dan ditagih ke akun lo sendiri. Ngobrol ringan biasanya jatuhnya sangat murah, tapi ini tetap uang lo — pantau di halaman Usage.</div></details>
+          <details class="acc"><summary>Cara dapetin kunci buat server</summary>
+            <div class="body">Buka <b>aistudio.google.com</b> → <b>Get API key</b> → salin, terus pasang di server:
+            <pre class="sql">supabase secrets set GEMINI_API_KEY=...</pre>
+            Langkah lengkapnya di <b>docs/SUPABASE.md</b>. Gratis, tapi ada batas harian — dan versi gratis Gemini boleh dipakai
+            Google buat ngelatih modelnya, jadi jangan curhat yang sensitif ke asisten ini.</div></details>
         </div>
       </div>`;
     /* dua tombol, satu jalan: ambil daftar model, kalau dapet berarti jalurnya hidup */
@@ -982,7 +984,7 @@ function sheetAI(){
   const models = AI.cfg.models || (AI.cfg.model ? [AI.cfg.model] : []);
   const srv = AI.lewatServer();
   const jalur = srv
-    ? `<div class="note" style="color:var(--c-ok)">Lewat Edge Function — kunci Anthropic nggak ada di HP ini.</div>`
+    ? `<div class="note" style="color:var(--c-ok)">Lewat Edge Function — kuncinya ada di server, nggak pernah nyampe HP ini.</div>`
     : AI.mundur
       ? `<div class="note" style="color:var(--c-warn)">Edge Function belum kejawab, lagi mundur ke kunci di HP. Deploy fungsinya biar balik aman.</div>`
       : `<div class="note" style="color:var(--c-warn)">Kunci kesimpan apa adanya di HP ini. Sambungkan Supabase, deploy fungsi <b>asisten</b>, biar kuncinya pindah ke server.</div>`;
@@ -993,7 +995,8 @@ function sheetAI(){
                    : F.text('aiM','Model', AI.cfg.model, 'isi kunci dulu, nanti kelist')) +
     `<button class="btn ghost block sm" id="aiRefresh">Muat ulang daftar model</button>
      ${Cloud.ready && !srv ? `<button class="btn ghost block sm" id="aiKeSrv">Pindah ke server</button>` : ''}
-     <div class="note">Biaya pemakaian ditagih ke akun Anthropic lo sendiri. Pantau di console.anthropic.com bagian Usage.</div>`,
+     <div class="note">${srv ? 'Kuotanya dibatesin server: 300 pesan per hari. Kalau kena batas, besok balik sendiri.'
+       : 'Kunci Anthropic di HP ditagih ke akun Anthropic lo sendiri — pantau di console.anthropic.com bagian Usage.'}</div>`,
     ()=>{ if (!srv) AI.cfg.key = val('aiK').trim(); AI.cfg.model = val('aiM').trim(); AI.save(); toast('Asisten diperbarui'); },
     (AI.cfg.key || srv) ? ()=>{ AI.cfg = {key:'',model:''}; AI.raw=[]; AI.mundur=false; AI.save(); toast('Asisten diputus'); } : null);
   const ks = $('#aiKeSrv');
